@@ -48,5 +48,5 @@ return function (array|\Saf\Canister &$canister = []) {
             : "{$vendorPath}/Saf/src";
         $scriptErrorMessage = 'Application foundation unavailable.';
     }
-    return $canister['tether']("${path}/{$script}.tether", $scriptErrorMessage);
+    return $canister['tether']("{$path}/{$script}.tether", $scriptErrorMessage);
 };

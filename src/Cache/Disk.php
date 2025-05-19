@@ -101,7 +101,7 @@ class Disk implements Strategy{
         }
         $contents = File::getJson($path);
         $valid = self::isvalid($contents, $minDate);
-        $payload = $valid ? self::extract($contents) :null;
+        $payload = $valid ? self::extract($contents) : null;
         //$payload || \Saf\Util\Profile::ping(["disk cache {$facet} expired timeout {$minDate}"]);
         if(!$valid) {
             if (!is_array($contents)) {
@@ -113,6 +113,16 @@ class Disk implements Strategy{
             }
         }
         return $valid ? $payload : $default;
+    }
+
+    public static function peek(string $file): mixed
+    { //#TODO consoliate with load()
+        if(!self::fileAvailable($file)) {
+            return null;
+        }
+        $contents = File::getJson($file);
+        $valid = self::isvalid($contents);
+        return $valid ? self::extract($contents) : null;
     }
 
     /**
@@ -242,6 +252,29 @@ class Disk implements Strategy{
                 $facet,
                 $path,
             ]);
+        }
+        return false;
+    }
+
+    public static function stache(string $file, mixed $data): bool
+    { //#TODO consilidate with save()
+        $timestampMode = self::STAMP_MODE_REPLACE;
+        $hold = File::hold($file);
+        if ($hold) {
+            $oldTime = 0;
+            if ($timestampMode) {
+                $size = filesize($file);
+                $oldTime = self::getHashTimestamp(File::readHeldFile($hold, $size));
+            }
+            File::wipe($hold);
+            $newTime = self::calcNewTimestamp($oldTime, $timestampMode);
+            $newContents = ['stamp' => $newTime, 'payload' => $data];
+            $newEncodedContents = File::toJson($newContents);
+            File::commit($hold, $newEncodedContents);
+            File::release($hold);
+            return true;
+        } else {
+            \Saf\Debug::outData("unable to stache {$file}");
         }
         return false;
     }

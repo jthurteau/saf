@@ -106,18 +106,26 @@ class Cache
         self::$hashMemory[$facet][$uname] = $data;
     }
 
-    public static function get(string $facet)
+    public static function get(string $facet): mixed
     {
-        if (self::$callback) {
-            return (self::$callback)($facet);
+        try{
+            if (self::$callback) {
+                return (self::$callback)($facet);
+            }
+        } catch (\Error | \Exception $e) {
+            class_exists('\Saf\Debug', false) && \Saf\Debug::outData(['cache get failure', $e]);
         }
         return false;
     }
 
-    public static function store(string $facet, mixed $data)
+    public static function store(string $facet, mixed $data): bool
     {
-        if (self::$callback) {
-           return (self::$callback)($facet, $data);
+        try{
+            if (self::$callback) {
+            return (bool)(self::$callback)($facet, $data);
+            }
+        } catch (\Error | \Exception $e) {
+            class_exists('\Saf\Debug', false) && \Saf\Debug::outData(['cache store failure', $e]);
         }
         return false;
     }

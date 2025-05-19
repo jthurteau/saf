@@ -57,7 +57,7 @@ class Auto
      * @param string Fully qualified class name
      * @return string path for the internal $class in question
      */
-    public static function classPathLookup(string $class, string $externalPath = null, $prefix = __NAMESPACE__)
+    public static function classPathLookup(string $class, ?string $externalPath = null, string $prefix = __NAMESPACE__)
     {
         // $exitTrace = false;
         // try{

@@ -53,5 +53,5 @@ return function ( #TODO #PHP8 allows throw as an expression
         $canister['tether']("//{$canister['installPath']}/src/tools/doctor.tether", 'Error including doctor tether');
     }
     //throw new Exception('hi');
-    $canister['tether']("//${path}/{$script}.tether", $scriptErrorMessage);
+    $canister['tether']("//{$path}/{$script}.tether", $scriptErrorMessage);
 };

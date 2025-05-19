@@ -411,7 +411,7 @@ class Debug
     public static function stringR(mixed $data = null): string
     {
         $args = func_get_args();
-        return count($args) > 1 ? ('...[' . print_r($args, true) . ']') : print_r($data, true);
+        return count($args) > 1 ? ('...[' . Analysis::data($args) . ']') : Analysis::data($data);
     }
 
     /**

@@ -286,7 +286,7 @@ class Db
         return function($directive, $p1 = null, $p2 = null, $p3 = null) {
             switch ($directive) {
                 case 'prepare':
-                    $statement = $this->connection->query($p1);
+                    $statement = $this->connection?->query($p1);
                     if (!$statement) {
                         $this->addError('Query Failed');
                         $this->pullError();
@@ -295,8 +295,8 @@ class Db
                 case 'query':
                     $statement =
                         $p2
-                            ? $this->connection->query($p1, $p2)
-                            : $this->connection->query($p1);
+                            ? $this->connection?->query($p1, $p2)
+                            : $this->connection?->query($p1);
                     if (!$statement) {
                         $this->addError('Query Failed');
                         $this->pullError();
