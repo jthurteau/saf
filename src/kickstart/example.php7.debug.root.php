@@ -41,7 +41,7 @@ return (static function(){
     ] + $app;  //#NOTE former overrides latter
 
     $debugConstants = [
-            'Saf\AUTH_SIMULATED_USER' => 'jthurtea',
+            'Saf\AUTH_SIMULATED_USERS' => 'username',
     ];
     
     key_exists('stdInlets', $debug) || $debug['stdInlets'] = []; 

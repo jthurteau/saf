@@ -15,6 +15,11 @@ use Saf\Hash;
 
 abstract class Map
 {
+    
+    //public static function coerce
+    
+    //public static function mapped returns is array|ArrayAccess
+    
     /**
      * Checks an array for the existance of one or more keys in an array
      * For any values in $keys that are valid keys (not an Array or Object),

@@ -20,7 +20,7 @@ class Collection
 
     public const MODE_VERBOSE = 0;
     public const MODE_TRUNCATE = 1;
-    public const MODE_AGRESSIVE_TRUNCATE = 2;
+    public const MODE_AGGRESSIVE_TRUNCATE = 2;
  
     public const TYPE_MIXED = 0;
     public const TYPE_BOOL = 1;
@@ -43,7 +43,7 @@ class Collection
      * @param int $mode
      * @return array|Traversable
      */
-    public static function coerce($maybeArray, ?int $mode = self::MODE_AGRESSIVE_TRUNCATE)
+    public static function coerce($maybeArray, ?int $mode = self::MODE_AGGRESSIVE_TRUNCATE)
     {
         return
             self::traversable($maybeArray)
@@ -64,14 +64,14 @@ class Collection
      * MODE_TRUNCATE = remove NULL and empty string values
      * MODE_AGGRESSIVE_TRUNCATE remove NULL and white space only strings
      */
-    public static function clean(array $array, ?int $mode = self::MODE_AGRESSIVE_TRUNCATE)
+    public static function clean(array $array, ?int $mode = self::MODE_AGGRESSIVE_TRUNCATE)
     {
         if (is_null($mode) || $mode === self::MODE_VERBOSE) {
             return $array;
         }
         foreach($array as $index => $value) {
             $testValue =
-                self::MODE_AGRESSIVE_TRUNCATE && is_string($value)
+                self::MODE_AGGRESSIVE_TRUNCATE && is_string($value)
                 ? trim($value)
                 : $value;
             if(is_null($value) || $testValue === '') {

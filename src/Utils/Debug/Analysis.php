@@ -34,6 +34,17 @@ class Analysis
                 return self::dataObject($message, $maxDepth, $maxSize);
             case 'array':
                 return self::dataArray($message, $maxDepth, $maxSize);
+            case 'NULL':
+                return 'NULL';
+            case 'boolean':
+                $label = $message ? 'true' : 'false';
+                return "{$type}:{$label}";
+            case 'string':
+                $length = strlen($message);
+                if ($length > $maxSize / self::MAX_MEMORY_SHARE) {
+                    $message = substr($message, $maxSize / self::MAX_MEMORY_SHARE) . '...';
+                }
+                return "{$type}:{$length}:[{$message}]";
             default:
                 return "{$type}:{$message}";
         }

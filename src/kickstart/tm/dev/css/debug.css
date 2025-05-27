@@ -1,0 +1,54 @@
+body {
+    font-family:Arial, Helvetica, sans-serif
+}
+
+.result {
+    border:1px solid #999;
+    padding:0.25rem;
+}
+
+.canister {
+    border:1px;
+}
+
+.canister-entry, .serial, .trace-entry {
+    border: 1px solid #999;
+    padding: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+/*.serial, */
+.array-value, .object-value, .context-params, .thrown-previous {
+    margin-left: 1rem;
+}
+
+.highlight {
+    background-color: #eee;
+}
+
+.param-number, .param-value,
+.thrown-class, .thrown-message,
+.canister-key, .canister-key + .entry-value.value-scalar {
+    display: inline-block;
+}
+
+.param-number {
+    vertical-align: top;
+}
+
+.entry-type-object {
+    display: none;
+}
+
+/**
+ * SAF
+ */
+
+.saf-collapsed {
+    background-color: #ddd;
+    border: 1px solid #ccc;
+}
+
+.saf-expanded {
+    border: 1px solid #ddd;
+}

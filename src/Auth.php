@@ -34,8 +34,15 @@ class Auth
     public const PLUGIN_INFO_PREFNAME = 'preferredName';
     public const PLUGIN_INFO_FULLNAME = 'fullName';
     public const PLUGIN_INFO_EMAIL = 'email';
-
     public const REALM_FIELD = 'loginRealm';
+    public const USER_AUTODETECT = null;
+    public const int MODE_SIMULATED = 1;
+    public const string SIMULATED_AUTH_CONSTANT = '\\Saf\\AUTH_SIMULATED_USERS';
+    public const SIMULATED_AUTH_LOCK_KEY = 'simulated_login_lock';
+    public const SIMULATED_AUTH_USER_KEY = 'simulated_user';
+    public const string SIMULATED_AUTH_KEY_PARAM = 'simulated_login_key';
+    //const MODE_SESSIONLESS = 2; //#TODO
+    //const MODE_KEYONLY = 4; //#TOD
 
     protected const STATUS_CANNOT_CREATE_USER = '009';
 
@@ -57,16 +64,7 @@ class Auth
     protected static $postLoginHooks = [];
     protected static $simKeys = [];
     
-    public const USER_AUTODETECT = null;
-    public const MODE_SIMULATED = 1;
-    public const SIMULATED_AUTH_CONSTANT = '\\Saf\\AUTH_SIMULATED_USER';
-    public const SIMULATED_AUTH_LOCK_KEY = 'simulated_login_lock';
-    public const SIMULATED_AUTH_USER_KEY = 'simulated_user';
-    public const SIMULATED_AUTH_KEY_PARAM = 'simulated_login_key';
-    //const MODE_SESSIONLESS = 2; //#TODO
-    //const MODE_KEYONLY = 4; //#TODO
-
-    public function __invoke(ContainerInterface $container, string $name, callable $callback) : Object
+    public function __invoke(ContainerInterface $container, string $name, callable $callback): Object
     {
 
         $authConfig = Container::getOptional($container, ['config', 'auth'], []);//Hash::extractIfArray('auth', $containerConfig, []));
@@ -78,21 +76,7 @@ class Auth
             Keys::setServiceKeys($keys);
         }
         self::autodetect();
-        if (
-            self::$autoKey
-            && (
-                in_array('Key', self::$loadedPlugins)
-                || in_array('\\Saf\\Auth\\Plugin\\Key', self::$loadedPlugins)
-            )
-            && (
-                self::$activePlugin != self::getPlugin('Key')
-            )
-        ) {
-            self::getPlugin('Key')->auth(false);
-        }
-        // $created = $callback();
-        // // $created-> ...
-        // return $created;
+        self::autoKey(); //#TODO move this before sutodetect and rename initKeys?
         return $callback();
     }
 
@@ -109,7 +93,7 @@ class Auth
             self::$activePlugin = new Local();
             self::$supportsInternal = true;
             if (key_exists('simulatedAuthKeys', $config)) {
-                self::$simKeys = $config['simulatedAuthKeys'];
+                self::$simKeys = self::parseConfigList($config['simulatedAuthKeys']);
             }
         }
         $plugins =
@@ -161,50 +145,94 @@ class Auth
         self::$initialized = true;
     }
 
-    public static function autodetect($mode = null)
+    protected static function autokey(): void
+    {
+        $pluginAvailable =
+            in_array('Key', self::$loadedPlugins)
+            || in_array('\\Saf\\Auth\\Plugin\\Key', self::$loadedPlugins);
+        $keyPluginInactive = self::$activePlugin != self::getPlugin('Key');
+        self::$autoKey 
+            && $pluginAvailable 
+            && $keyPluginInactive 
+            && self::getPlugin('Key')->auth(false);
+    }
+
+    /**
+     * parses JSON like strings into an array
+     */
+    protected static function parseKeys(mixed $keys): array
+    {
+
+        return $keys ? (is_array($keys) ? $keys : [(string)$keys]) : [];
+    }
+
+    protected static function parseConfigList(null|string|array $list, ?string $delim = null): array
+    {
+        if (is_string($list)) {
+            $matches = ['"' => '"','[' => ']','{' => '}'];
+            $first = substr($list, 0, 1);
+            $last = substr($list, -1, 1);
+            if (
+                in_array($first, array_keys($matches)) 
+                && $last == $matches[$first]
+            ) {
+                $list = json_decode($list, true);
+            } elseif ($delim) {
+                $list = explode($delim, $list);
+                foreach($list as $index => $value) {
+                    $list[$index] = trim($value);
+                }
+            } else {
+                $list = $list ? [trim($list)] : [];
+            }
+        }
+        return $list ?? [];
+    }
+
+    public static function parseUserList(null|string|array $list, null|bool|string $limitOne = true): null|string|array
+    {
+        $list = self::parseConfigList($list);
+        foreach($list as $index => $username) {
+            $value[$index] = trim((string)$username);
+            if (!$value[$index]) { 
+                unset($value[$index]);
+            }
+        }
+        if (is_string($limitOne)) {
+            return in_array($limitOne, $list) ? $limitOne : null;
+        }
+        return $limitOne ? current($list) : $list; 
+    }
+    
+    public static function autodetect(?int $mode = null): bool
     {
         if (!self::$initialized) {
             throw new \Exception('Attempting to authenticate before initialization.');
         }
         Session::on();
         $originalActivePlugin = self::$activePlugin;
-        $simulatedAuthConst = self::SIMULATED_AUTH_CONSTANT;
         //throw new \Saf\Exception\Inspectable($mode,$originalActivePlugin,self::$supportsInternal,self::$activePlugin);
         if (self::$supportsInternal && self::$activePlugin) {
-            $simulatedLockOn =
-                isset($_SESSION)
-                && key_exists(self::SIMULATED_AUTH_LOCK_KEY, $_SESSION);
+            $simulatedLockOn = Session::has(self::SIMULATED_AUTH_LOCK_KEY);
             $currentSimulatedUser =
-                key_exists(self::SIMULATED_AUTH_USER_KEY, $_SESSION)
-                ? $_SESSION[self::SIMULATED_AUTH_USER_KEY]
+                Session::has(self::SIMULATED_AUTH_USER_KEY)
+                ? Hash::singleton(Session::get(self::SIMULATED_AUTH_USER_KEY))
                 : '';
-            if ($simulatedLockOn) {
+            \Saf\Debug::outData(['autodetecting',$mode,$currentSimulatedUser,$simulatedLockOn]);
+            if ($simulatedLockOn && is_null($mode)) {
                 $mode = self::MODE_SIMULATED;
-                defined($simulatedAuthConst) || define($simulatedAuthConst, $currentSimulatedUser);
+                defined(self::SIMULATED_AUTH_CONSTANT) || define(self::SIMULATED_AUTH_CONSTANT, [$currentSimulatedUser]);
             }
             $userToLogin =
                 $mode === self::MODE_SIMULATED
-                    && defined($simulatedAuthConst)
-                    && constant($simulatedAuthConst)
-                ? constant($simulatedAuthConst) //\Saf\AUTH_SIMULATED_USER
+                    && defined(self::SIMULATED_AUTH_CONSTANT)
+                    && constant(self::SIMULATED_AUTH_CONSTANT)
+                ? self::parseUserList(constant(self::SIMULATED_AUTH_CONSTANT), $currentSimulatedUser)
                 : self::USER_AUTODETECT;
-            // throw new \Saf\Exception\Inspectable(
-            //     $userToLogin, self::$activePlugin, constant($simulatedAuthConst), self::MODE_SIMULATED, $mode
-            // );
-            if (
-                self::login($userToLogin) && self::$activePlugin->auth()
-            ){
-                if (
-                    self::$authenticated
-                    && $mode == self::MODE_SIMULATED
-                ) {
-                    $_SESSION[self::SIMULATED_AUTH_LOCK_KEY] = true;
-                    $_SESSION[self::SIMULATED_AUTH_USER_KEY] = constant($simulatedAuthConst);
-                }
-                return self::$authenticated;
+            if (self::simulatedLogin($userToLogin)) {
+                return true;
             }
         }
-        // self::init();
         $plugins = (
             !key_exists(self::REALM_FIELD, $_GET)
                 || !in_array(trim($_GET[self::REALM_FIELD]),self::$loadedPlugins)
@@ -253,8 +281,33 @@ class Auth
         return false;
     }
 
-    public static function authenticate(ServerRequestInterface $request) : ?string
+    protected static function simulatedLogin(?string $username): bool
     {
+        if (
+            self::login($username) && self::$activePlugin->auth()
+        ){
+            if (self::$authenticated && $mode == self::MODE_SIMULATED) {
+                Session::set(self::SIMULATED_AUTH_LOCK_KEY, true);
+                Session::set(self::SIMULATED_AUTH_USER_KEY, $userToLogin);
+            }
+            return self::$authenticated;
+        }
+    }
+
+    public static function reauthenticate(?ServerRequestInterface $request = null): ?string
+    {
+        self::isExternallyLoggedIn() && self::logoutLocally();
+        if ($request) {
+            \Saf\Debug::outData(['reauthenticating', $simUser, self::getPluginProvidedUsername()]);
+            $simUser = self::allowedSimulatedLoginUsername($request);
+            $simUser && self::login($simUser) && self::$activePlugin->auth();
+        }
+        return self::authenticate($request);
+    }
+
+    public static function authenticate(?ServerRequestInterface $request = null) : ?string
+    {
+        \Saf\Debug::outData(['authenticating', $simUser, self::getPluginProvidedUsername()]);
         return self::getPluginProvidedUsername();
     }
 
@@ -287,11 +340,10 @@ class Auth
         return key_exists('username', $_SESSION) && $_SESSION['username'];
     }
 
-    public static function logout($realm = '*')
+    public static function logout(string $realm = '*'): void
     {
-        unset($_SESSION[self::SIMULATED_AUTH_LOCK_KEY]);
-        self::logoutExternally();
         self::logoutLocally();
+        self::logoutExternally();
     }
 
     public static function logoutExternally($realm = '*')
@@ -371,9 +423,8 @@ class Auth
 
     public static function logoutLocally()
     {
-        if (key_exists('username', $_SESSION) ) {
-            unset($_SESSION['username']);
-        }
+        Session::erase(self::SIMULATED_AUTH_LOCK_KEY);
+        Session::erase('username');
         Session::clean();
     }
 
@@ -482,28 +533,39 @@ class Auth
         return self::$allowGuest;
     }
 
-    public static function allowSimulatedLogin(string $username, ServerRequestInterface $request)
+    public static function allowedSimulatedLoginUsername(ServerRequestInterface $request): false|string
     {
+        $usernames = 
+            defined(self::SIMULATED_AUTH_CONSTANT)
+            ? Hash::coerce(self::parseUserList(constant(self::SIMULATED_AUTH_CONSTANT), false), Hash::MODE_AGGRESSIVE_TRUNCATE)
+            : [];
         $query = $request->getQueryParams();
         $simKey = 
-            key_exists(self::SIMULATED_AUTH_KEY_PARAM, $query) 
-            ? $query[self::SIMULATED_AUTH_KEY_PARAM] 
+            self::SIMULATED_AUTH_KEY_PARAM
+            && key_exists(self::SIMULATED_AUTH_KEY_PARAM, $query) 
+            ? (string)$query[self::SIMULATED_AUTH_KEY_PARAM] 
             : null;
-        if ($simKey && in_array($simKey, self::$simKeys)) {
+        if ($simKey) {
             foreach(self::$simKeys as $keyIndex => $key) {
-                if (
-                    $key === $simKey 
-                    && (is_numeric($key) || $key === $username)
-                ) {
-                    return $username;
+                if ($key === $simKey) {
+                    $possibleMatch = trim((string)$keyIndex);
+                    if ($usernames && is_numeric($keyIndex)) {
+                        return current($usernames);
+                    } elseif (in_array($possibleMatch, $usernames)) {
+                        return $possibleMatch;
+                    }
                 }
             }
-            return $username;
         }
         return false;
     }
 
-    public static function simulatedLoginEnabled()
+    public static function simulatedLoginValid($request): bool
+    {
+        return  self::simulatedLoginEnabled() && Auth::allowedSimulatedLoginUsername($request); 
+    }
+
+    public static function simulatedLoginEnabled(): bool
     {
         return count(self::$simKeys) > 0;
     }
@@ -540,7 +602,8 @@ class Auth
         return true;
     }
 
-    protected static function registerPlugin($pluginName, $pluginConfig = null){
+    protected static function registerPlugin($pluginName, $pluginConfig = null)
+    {
         if (!in_array($pluginName, self::$loadedPlugins)) {
             self::$loadedPlugins[] = $pluginName;
             $className = 'Saf\\Auth\\Plugin\\' . $pluginName;

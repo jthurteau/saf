@@ -31,7 +31,7 @@ class Key extends Base {
         parent::__constructor($config);
     }
 
-	public function auth($setStatus = true)
+	public function auth(?bool $setStatus = true): bool
 	{
         $key = Keys::detect();
 		$username = 

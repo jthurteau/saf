@@ -1,0 +1,1 @@
+rm /vagrant/composer.lock

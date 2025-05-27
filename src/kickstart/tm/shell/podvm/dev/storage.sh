@@ -1,0 +1,1 @@
+mkdir -p /opt/project/storage/${1:-tmp}

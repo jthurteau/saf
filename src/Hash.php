@@ -20,18 +20,18 @@ require_once(__DIR__ . '/Exception/NotAnArray.php');
 class Hash
 {
 
-    const TYPE_NONE = 0;
-    const TYPE_NULL = 1;
-    const TYPE_STRING = 2;
-    const TYPE_ARRAY = 4;
+    public const int TYPE_NONE = 0;
+    public const int TYPE_NULL = 1;
+    public const int TYPE_STRING = 2;
+    public const int TYPE_ARRAY = 4;
     
-    const MATCH_EXACT = 0;
-    const MATCH_EQUAL = 1;
-    const MATCH_LOOSE = 2;
+    public const int MATCH_EXACT = 0;
+    public const int MATCH_EQUAL = 1;
+    public const int MATCH_LOOSE = 2;
 
-    const MODE_VERBOSE = 0;
-    const MODE_TRUNCATE = 1;
-    const MODE_AGRESSIVE_TRUNCATE = 2;
+    public const int MODE_VERBOSE = 0;
+    public const int MODE_TRUNCATE = 1;
+    public const int MODE_AGGRESSIVE_TRUNCATE = 2;
  
     /**
      * searches the passed array for the specified key. If
@@ -195,7 +195,7 @@ class Hash
      * @param int $mode
      * @return array
      */
-    public static function coerce($maybeArray, $mode = self::MODE_VERBOSE)
+    public static function coerce(mixed $maybeArray, ?int $mode = self::MODE_VERBOSE): array|\Traversable
     {
         return
             self::traversable($maybeArray)
@@ -207,7 +207,7 @@ class Hash
     {
         return
             is_array($maybeArray)
-            || (is_object($maybeArray) && is_a($maybeArray, 'Traversable'));
+            || (is_object($maybeArray) && is_a($maybeArray, \Traversable::class));
     }
 
     /**
@@ -223,7 +223,7 @@ class Hash
         }
         foreach($array as $index => $value) {
             $testValue =
-                self::MODE_AGRESSIVE_TRUNCATE && is_string($value)
+                self::MODE_AGGRESSIVE_TRUNCATE && is_string($value)
                 ? trim($value)
                 : $value;
             if(is_null($value) || $testValue == '') {
@@ -784,6 +784,36 @@ class Hash
     {
         self::assert($a);
         return $a[array_key_first($a)];
+    }
+
+    public static function singleton(mixed $possibleArray, bool|int $aggressive = false): mixed
+    {
+        if (is_array($possibleArray)) {
+            $first = current($possibleArray);
+        } elseif (is_a($possibleArray, '\Traversable')) {
+            $first =  $possibleArray->current();
+        } else {
+            $first = $possibleArray;
+        }
+        return 
+            self::isSingleton($first) || !$aggressive 
+            ? self::assertSingleton($first) 
+            : self::singleton($first, self::initDepth($aggressive) - 1);
+    }
+
+    public static function initDepth(int|bool $maxDepth): int
+    {
+        return is_int($maxDepth) ? max($maxDepth - 1, 1) : ($maxDepth ? self::DEFAULT_MAX_DEPTH : 1);
+    }
+
+    public static function isSingleton(mixed $value): mixed
+    {
+        return !is_array($value) && !is_a($value, '\Traversable');
+    }
+
+    public static function assertSingleton(mixed $value): mixed
+    {
+        return self::isSingleton($value) ? $value : null;
     }
 
 //    public static function firstKeyMatching($value, array|\ArrayAccess $array)

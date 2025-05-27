@@ -1,0 +1,1 @@
+#docker run -it --mount type=bind,src=.,dst=/opt/application/rooms,ro=true roomres-ems-rooms /bin/sh

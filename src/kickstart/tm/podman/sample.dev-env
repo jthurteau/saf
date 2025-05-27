@@ -1,0 +1,6 @@
+# https://docs.podman.io/en/v4.4/markdown/options/secret.html
+App_DB_USER=bar
+App_DB_PASS=foo
+App_DB_NAME=bar
+App_API_KEYS=foo
+Saf_AUTH_SIMULATED_LOGIN_KEYS=foo

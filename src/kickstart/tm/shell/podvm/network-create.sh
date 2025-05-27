@@ -1,0 +1,1 @@
+podman network create $1

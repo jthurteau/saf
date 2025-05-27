@@ -23,12 +23,11 @@ use Saf\Session;
 
 class Keys
 {
-    public const DEFAULT_KEY_FIELD = 'key';
-    public const KEYRING_FIELD = 'key';
+    public const string DEFAULT_KEY_FIELD = 'key';
 
-    protected static $serviceKeys = [];
-    protected static $keyring = [];
-    protected static $keyField = self::DEFAULT_KEY_FIELD;
+    protected static array $serviceKeys = [];
+    protected static array $keyring = [];
+    protected static string $keyField = self::DEFAULT_KEY_FIELD;
 
     public static function setServiceKeys($keyArray)
     {
@@ -52,10 +51,8 @@ class Keys
                 key_exists(self::$keyField, $_POST)
                 ? $_POST[self::$keyField]
                 : (
-                    $includeSession 
-                        && isset($_SESSION) 
-                        && key_exists(self::$keyField, $_SESSION)
-                    ? $_SESSION[self::$keyField]
+                    $includeSession && Session::has(self::$keyField)
+                    ? Session::get(self::$keyField)
                     : null
                 )
             );
@@ -69,27 +66,27 @@ class Keys
         if ($key){
             self::$keyring[] = $key;
             if( $persist && isset($_SESSION)) {
-                if (!key_exists(self::KEYRING_FIELD, $_SESSION)) {
-                    $_SESSION[self::KEYRING_FIELD] = [];
+                if (!key_exists(self::$keyField, $_SESSION)) {
+                    $_SESSION[self::$keyField] = [];
                 }
-                if (!in_array($key, $_SESSION[self::KEYRING_FIELD])) {
-                    $_SESSION[self::KEYRING_FIELD][] = $key;
+                if (!in_array($key, $_SESSION[self::$keyField])) {
+                    $_SESSION[self::$keyField][] = $key;
                 }
             }
         }
     }
 
-    public static function getKeyring()
+    public static function getKeyring(): array
     {
         return self::$keyring;
     }
 
-    public static function setKeyField(string $field)
+    public static function setKeyField(string $field): void
     {
         self::$keyField = $field;
     }
 
-    public static function validKey($keyValue, $name = null)
+    public static function validKey($keyValue, $name = null): bool
     {
         $keyValue = trim((string)$keyValue);
         if (!is_null($name)) {
@@ -116,7 +113,7 @@ class Keys
         return $valid;
     }
 
-    public static function keyName($keyValue)
+    public static function keyName($keyValue): ?string
     {
         foreach(self::$serviceKeys as $keyName => $key) {
             if ($keyValue === trim($key)) {

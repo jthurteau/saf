@@ -52,6 +52,13 @@ class Session
         self::ready() ? ($_SESSION[$index] = $value) : (self::$buffer[$index] = $value);
     }
 
+    public static function erase(int|string $index): void
+    {
+        if (self::ready() && key_exists($index, $_SESSION)) {
+            unset($_SESSION[$index]);
+        }
+    }
+
     public static function get(int|string $index): mixed
     {
         return self::ready() && key_exists($index, $_SESSION) ? $_SESSION[$index] : null;
