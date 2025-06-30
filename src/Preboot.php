@@ -12,16 +12,14 @@ namespace Saf;
 
 use Saf\Kickstart;
 use Saf\Auto;
-#use Saf\Legacy\Autoloader;
 use Saf\Resolver;
 use Saf\Agent;
 use Saf\Environment;
 
-#require_once(__DIR__ . '/Kickstart.php');
-require_once(__DIR__ . '/Auto.php');
-require_once(__DIR__ . '/Resolver.php');
-require_once(__DIR__ . '/Agent.php');
-require_once(__DIR__ . '/Environment.php');
+require_once(__DIR__.'/Auto.php');
+require_once(__DIR__.'/Resolver.php');
+require_once(__DIR__.'/Agent.php');
+require_once(__DIR__.'/Environment.php');
 
 class Preboot
 {
@@ -74,13 +72,13 @@ class Preboot
                 self::step($prebootOption, $instance, $mode);
             }
         }
-		if(key_exists('prebootSteps', $options)) {
+        if(key_exists('prebootSteps', $options)) {
             $optionSteps =
                 is_array($options['prebootSteps']) 
                 ? $options['prebootSteps'] 
                 : [$options['prebootSteps']];
             foreach($optionSteps as $optionStep){
-				self::step($optionStep, $instance, $mode);
+                self::step($optionStep, $instance, $mode);
             }
         }
         $modeClass = Environment::instanceOption($instance, Kickstart::OPTION_MANAGER);

@@ -57,7 +57,7 @@ class File
         return "{$prefix}/{$hash}";
     }
 
-    public static function getRawJsonHash(string $file, string $uname):mixed
+    public static function getRawJsonHash(string $file, string $uname): mixed
     {
         $contents = self::getRaw($file);
         $value = null;
@@ -72,14 +72,14 @@ class File
         return $value;
     }
 
-    public static function getJson(string $file):mixed
+    public static function getJson(string $file): mixed
     {
         $contents = self::getRaw($file);
         $value = self::parseJson($contents);
         return $value;        
     }
 
-    public static function parseJson(string $contents):mixed
+    public static function parseJson(string $contents): mixed
     {
         return json_decode($contents, null, 512, JSON_OBJECT_AS_ARRAY);
     }
@@ -111,7 +111,7 @@ class File
         return $contents;        
     }
 
-    public static function hold(string $file):mixed //?filepointer
+    public static function hold(string $file): mixed //?filepointer
     {
             $pointer = fopen($file, self::FILE_MODE_EDIT);
             $fileLock = flock($pointer, LOCK_EX);
@@ -122,7 +122,7 @@ class File
             return $fileLock ? $pointer : null;
     }
 
-    public static function release(mixed $pointer):void
+    public static function release(mixed $pointer): void
     {
         if (is_null($pointer)) {
             return;
@@ -136,7 +136,7 @@ class File
         return fwrite($pointer, $contents);
     }
 
-    public static function wipe(mixed $pointer):void
+    public static function wipe(mixed $pointer): void
     {
         if (!is_null($pointer)) {
             ftruncate($pointer, 0);

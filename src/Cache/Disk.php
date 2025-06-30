@@ -40,7 +40,7 @@ class Disk implements Strategy{
 
     //#TODO protected static array $facetMaps = []; //avoid collisions
 
-    public static function init(null|string|array $pathOrConfig):void
+    public static function init(null|string|array $pathOrConfig): void
     {
         if (is_string($pathOrConfig)) {
             self::$defaultPath = $pathOrConfig;
@@ -128,7 +128,7 @@ class Disk implements Strategy{
     /**
      * temporarily set the path elsewhere
      */
-    public static function target(string $path)
+    public static function target(string $path): void
     {
         self::$currentPath = $path;
     }
@@ -157,7 +157,7 @@ class Disk implements Strategy{
             : null;
     }
 
-    protected static function fileAvailable(string $file)
+    protected static function fileAvailable(string $file): bool
     {
         //\Saf\Util\Profile::ping(["cache file {$file} " . (is_readable($file) ? 'exists' : 'does not exist')]);
         return !is_null($file) && file_exists($file) && is_readable($file);
@@ -303,12 +303,12 @@ class Disk implements Strategy{
             );
     }
 
-    public static function fileSafeFacet(string $facet)
+    public static function fileSafeFacet(string $facet): string
     {
         return str_replace('@', '_at_', str_replace(['\\','::'], '_', $facet));
     }
 
-    protected static function ensurePath(string $path)
+    protected static function ensurePath(string $path): void
     {
         if (true && !file_exists($path)) {
             mkdir($path, 0744, true) || throw new \Exception("unable to ensure path for {$path}");

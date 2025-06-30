@@ -13,8 +13,8 @@ namespace Saf\Framework\Mode;
 use Saf\Framework\Manager;
 use Saf\Legacy\Autoloader;
 
-require_once(dirname(__DIR__) . '/Manager.php');
-require_once(dirname(dirname(__DIR__)) . '/Legacy/Autoloader.php');
+require_once(dirname(__DIR__).'/Manager.php');
+require_once(dirname(__DIR__, 2).'/Legacy/Autoloader.php');
 
 class SafLegacy extends Manager{
 
@@ -34,15 +34,7 @@ class SafLegacy extends Manager{
         if (!array_key_exists('zendPath', $options)) {
             $options['zendPath'] = self::getFrameworkPath($options);
         }
-        // if (array_key_exists('legacyMode', $options) && $options['legacyMode'] == 'zend-mvc') {
-        //     $path = 
-        //         array_key_exists('zendPath', $options)
-        //         ? $options['zendPath']
-        //         : self::getFrameworkPath($options);
-        // }
         self::insertPath($options['zendPath'], '.') || self::insertPath($options['zendPath']);
-        // require_once("{$path}/Zend/Loader/Autoloader.php");
-		// \Zend_Loader_Autoloader::getInstance()->setFallbackAutoloader(TRUE);
         Autoloader::init($options);
     }
 

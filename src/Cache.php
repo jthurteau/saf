@@ -56,39 +56,39 @@ class Cache
      */
     protected static $callback = null;
 
-    public static function getFactor():float
+    public static function getFactor(): float
     {
         return self::$fuzziness;
     }
 
-    public static function setFactor(float $factor):void
+    public static function setFactor(float $factor): void
     {
         self::$fuzziness = $factor;
     }
 
-    public static function increaseCling():float
+    public static function increaseCling(): float
     {
         self::$fuzziness = 1 + log(++self::$cling, self::LOG_BASE);
         return self::$fuzziness;
     }
 
-    public static function fuzzyCling(int $threshold):int
+    public static function fuzzyCling(int $threshold): int
     {
         return $threshold + rand(0, ceil($threshold * self::$fuzziness));
     }
 
-    public static function staticCling(int $threshold):int
+    public static function staticCling(int $threshold): int
     {
         return $threshold + ceil($threshold * self::$fuzziness);
     }
 
-    public static function resetCling():void
+    public static function resetCling(): void
     {
         self::$cling = 0;
         self::$fuzziness = 1;
     }
 
-    public static function getHashed(string $facet, string $uname, $callback = null):mixed
+    public static function getHashed(string $facet, string $uname, $callback = null): mixed
     {
         $stored =
             key_exists($facet, self::$hashMemory)
@@ -99,7 +99,7 @@ class Cache
         return null;
     }
 
-    public static function setHashed(string$facet, string $uname, mixed $data):void
+    public static function setHashed(string$facet, string $uname, mixed $data): void
     {
         //#TODO set limit like Saf\Memory (or delegate?)
         key_exists($facet, self::$hashMemory) || (self::$hashMemory[$facet] = []);

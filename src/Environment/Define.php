@@ -17,11 +17,11 @@ use Saf\Hash;
 // use Saf\File\Env;
 
 
-require_once(dirname(__DIR__) . '/Exception/NoResource.php');
-require_once(dirname(__DIR__) . '/Cast.php');
-require_once(dirname(__DIR__) . '/Hash.php');
-// require_once(dirname(__DIR__) . '/File/Dot.php');
-// require_once(dirname(__DIR__) . '/File/Env.php');
+require_once(dirname(__DIR__).'/Exception/NoResource.php');
+require_once(dirname(__DIR__).'/Cast.php');
+require_once(dirname(__DIR__).'/Hash.php');
+// require_once(dirname(__DIR__).'/File/Dot.php');
+// require_once(dirname(__DIR__).'/File/Env.php');
 
 //#TODO #2.0.0 update function header docs
 class Define {

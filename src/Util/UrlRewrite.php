@@ -13,9 +13,10 @@ namespace Saf\Util;
 class UrlRewrite
 {
 
-    public const QUERY_DELIM = '?';
-    public const QUERY_FIELD_DELIM = '&';
-    public const QUERY_FIELD_ASSIGNMENT = '=';
+    public const string QUERY_DELIM = '?';
+    public const string QUERY_FIELD_DELIM = '&';
+    public const string QUERY_FIELD_ASSIGNMENT = '=';
+	public const bool QUERY_APPEND = true;
 
     /**
      * gets the URL Query from the passed URL
@@ -132,6 +133,19 @@ class UrlRewrite
 			? $url
 			: base64_decode(substr($url, 1));
 	}
+
+	/**
+	 * 
+	 */
+	public static function decodePair(?array $pair): array
+	{
+		$return = [];
+		if ($pair && key_exists(0, $pair)) {
+			$return[0] = urldecode((string)$pair[0]);
+			key_exists(1, $pair) && ($return[1] = urldecode((string)$pair[1]));
+		}
+		return $return;
+	}
 	
 	/**
 	 * decides if a string is a forward code encoded with encodeForward
@@ -141,6 +155,34 @@ class UrlRewrite
 	public static function isForwardCode($url){
 		$pattern = '/^[.][a-zA-Z0-9+\/=]{4,}[=]{0,2}$/';
 		return preg_match($pattern, $url);
+	}
+
+	/**
+	 * prepends the appropriate character to a query fragment
+	 * @param ?string $query
+	 * @param bool $append 
+	 * @return string
+	 */
+	public static function withQuery(?string $string = null, ?bool $append = false): string
+	{
+		return 
+			$string && trim($string)
+			? (($append ? self::QUERY_FIELD_DELIM : self::QUERY_DELIM) . trim($string))
+			: '';
+	}
+
+	/**
+	 * 
+	 */
+	public static function unmapQuery(array $map): string
+	{
+		$encodedParts = [];
+		foreach($map as $index => $value) {
+			if (trim((string)$index)) {
+				$encodedParts[] = urlencode($index) . self::QUERY_FIELD_ASSIGNMENT . urlencode($value);
+			}
+		}
+		return implode(self::QUERY_FIELD_DELIM, $encodedParts);
 	}
 }
 

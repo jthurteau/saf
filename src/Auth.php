@@ -22,6 +22,8 @@ use Saf\Util\Ground;
 use Saf\Keys; //#TODO improve this integration (maybe switch to direct Plugin\Key dependency)
 use Saf\Util\Layout; //#TODO clean up this integration
 use Saf\Audit; //#TODO clean up this integration
+use Saf\Util\UrlRewrite;
+use Saf\Exception\Redirect;
 #TODO split out plugin functionality
 
 class Auth
@@ -37,7 +39,7 @@ class Auth
     public const REALM_FIELD = 'loginRealm';
     public const USER_AUTODETECT = null;
     public const int MODE_SIMULATED = 1;
-    public const string SIMULATED_AUTH_CONSTANT = '\\Saf\\AUTH_SIMULATED_USERS';
+    public const string SIMULATED_AUTH_USERS = '\\Saf\\AUTH_SIMULATED_USERS';
     public const SIMULATED_AUTH_LOCK_KEY = 'simulated_login_lock';
     public const SIMULATED_AUTH_USER_KEY = 'simulated_user';
     public const string SIMULATED_AUTH_KEY_PARAM = 'simulated_login_key';
@@ -218,18 +220,17 @@ class Auth
                 Session::has(self::SIMULATED_AUTH_USER_KEY)
                 ? Hash::singleton(Session::get(self::SIMULATED_AUTH_USER_KEY))
                 : '';
-            \Saf\Debug::outData(['autodetecting',$mode,$currentSimulatedUser,$simulatedLockOn]);
+            //\Saf\Debug::outData(['autodetecting',$mode,$currentSimulatedUser,$simulatedLockOn, Session::get(self::SIMULATED_AUTH_USER_KEY), Hash::singleton(Session::get(self::SIMULATED_AUTH_USER_KEY)),$_SESSION]);
             if ($simulatedLockOn && is_null($mode)) {
                 $mode = self::MODE_SIMULATED;
-                defined(self::SIMULATED_AUTH_CONSTANT) || define(self::SIMULATED_AUTH_CONSTANT, [$currentSimulatedUser]);
+                defined(self::SIMULATED_AUTH_USERS) || define(self::SIMULATED_AUTH_USERS, [$currentSimulatedUser]);
             }
-            $userToLogin =
-                $mode === self::MODE_SIMULATED
-                    && defined(self::SIMULATED_AUTH_CONSTANT)
-                    && constant(self::SIMULATED_AUTH_CONSTANT)
-                ? self::parseUserList(constant(self::SIMULATED_AUTH_CONSTANT), $currentSimulatedUser)
-                : self::USER_AUTODETECT;
-            if (self::simulatedLogin($userToLogin)) {
+            $simUser = 
+                $mode === self::MODE_SIMULATED 
+                    && $currentSimulatedUser
+                ? self::detectSimulatedLogin($currentSimulatedUser) 
+                : null;
+            if ($simUser && self::simulatedLogin($simUser)) {
                 return true;
             }
         }
@@ -281,25 +282,37 @@ class Auth
         return false;
     }
 
+    public static function redirect(string $url): Redirect
+    {
+        $redirect = new Redirect($url);
+        return self::decorateRedirect($redirect);
+    }
+
+    public static function decorateRedirect(Redirect $r): Redirect
+    {
+        return \Saf\Debug::isVerbose() ? $r : $r->makeAutomatic();
+    }
+
     protected static function simulatedLogin(?string $username): bool
     {
         if (
             self::login($username) && self::$activePlugin->auth()
         ){
-            if (self::$authenticated && $mode == self::MODE_SIMULATED) {
+            if (self::$authenticated) {
                 Session::set(self::SIMULATED_AUTH_LOCK_KEY, true);
-                Session::set(self::SIMULATED_AUTH_USER_KEY, $userToLogin);
+                Session::set(self::SIMULATED_AUTH_USER_KEY, $username);
             }
             return self::$authenticated;
         }
+        return false;
     }
 
     public static function reauthenticate(?ServerRequestInterface $request = null): ?string
     {
         self::isExternallyLoggedIn() && self::logoutLocally();
         if ($request) {
-            \Saf\Debug::outData(['reauthenticating', $simUser, self::getPluginProvidedUsername()]);
             $simUser = self::allowedSimulatedLoginUsername($request);
+            //\Saf\Debug::outData(['reauthenticating', $simUser, self::getPluginProvidedUsername()]);
             $simUser && self::login($simUser) && self::$activePlugin->auth();
         }
         return self::authenticate($request);
@@ -307,7 +320,7 @@ class Auth
 
     public static function authenticate(?ServerRequestInterface $request = null) : ?string
     {
-        \Saf\Debug::outData(['authenticating', $simUser, self::getPluginProvidedUsername()]);
+        //\Saf\Debug::outData(['authenticating request', self::getPluginProvidedUsername()]);
         return self::getPluginProvidedUsername();
     }
 
@@ -424,6 +437,7 @@ class Auth
     public static function logoutLocally()
     {
         Session::erase(self::SIMULATED_AUTH_LOCK_KEY);
+        Session::erase(self::SIMULATED_AUTH_USER_KEY);
         Session::erase('username');
         Session::clean();
     }
@@ -533,11 +547,21 @@ class Auth
         return self::$allowGuest;
     }
 
+    public static function detectSimulatedLogin(?string $allowed):?string
+    {
+        //\Saf\Debug::outData(['detecting sim login', $allowed]);
+        return 
+            defined(self::SIMULATED_AUTH_USERS)
+                && constant(self::SIMULATED_AUTH_USERS)
+            ? self::parseUserList(constant(self::SIMULATED_AUTH_USERS), $allowed)
+            : self::USER_AUTODETECT;
+    }
+
     public static function allowedSimulatedLoginUsername(ServerRequestInterface $request): false|string
     {
         $usernames = 
-            defined(self::SIMULATED_AUTH_CONSTANT)
-            ? Hash::coerce(self::parseUserList(constant(self::SIMULATED_AUTH_CONSTANT), false), Hash::MODE_AGGRESSIVE_TRUNCATE)
+            defined(self::SIMULATED_AUTH_USERS)
+            ? Hash::coerce(self::parseUserList(constant(self::SIMULATED_AUTH_USERS), false), Hash::MODE_AGGRESSIVE_TRUNCATE)
             : [];
         $query = $request->getQueryParams();
         $simKey = 
@@ -560,7 +584,7 @@ class Auth
         return false;
     }
 
-    public static function simulatedLoginValid($request): bool
+    public static function simulatedLoginValid(ServerRequestInterface $request): bool
     {
         return  self::simulatedLoginEnabled() && Auth::allowedSimulatedLoginUsername($request); 
     }
@@ -621,5 +645,31 @@ class Auth
                 self::$classMap[$pluginName] = $rootClassName;
             }
         }
+    }
+
+    public static function filterQuery(?string $query): string
+    {
+        $disallowed = [
+            self::SIMULATED_AUTH_KEY_PARAM,
+        ];
+        $queryMap = Hash::fromQuery($query,'\Saf\Util\UrlRewrite::decodePair');
+        foreach($disallowed as $key) {
+            if (key_exists($key, $queryMap)) {
+                unset($queryMap[$key]);
+            }
+        }
+        return UrlRewrite::unmapQuery($queryMap);
+    }
+
+    public static function propAuthQuery(ServerRequestInterface $request): string
+    {
+        $find = [
+            self::SIMULATED_AUTH_KEY_PARAM,
+        ];
+        $params = [];
+        foreach($request->getQueryParams() as $index => $value) {
+            in_array($index, $find, true) && ($params[$index] = $value);
+        }
+        return UrlRewrite::unmapQuery($params);
     }
 }

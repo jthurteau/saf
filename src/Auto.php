@@ -13,8 +13,8 @@ namespace Saf;
 use Saf\Legacy\Autoloader as LegacyAutoLoader;
 use Saf\Environment\Autoloader;
 
-require_once(__DIR__ . '/Legacy/Autoloader.php');
-require_once(__DIR__ . '/Environment/Autoloader.php');
+require_once(__DIR__.'/Legacy/Autoloader.php');
+require_once(__DIR__.'/Environment/Autoloader.php');
 
 class Auto
 {

@@ -11,15 +11,16 @@
 namespace Saf;
 
 //use Saf\Cast;
-//use Saf\Session;
-
-// use Saf\Utils\Status;
+use Saf\Session;
 //#TODO patch into Saf\Meditation;
-
 use Saf\Utils\Debug\Handler;
 use Saf\Utils\Debug\Analysis;
-
 use Saf\Meditation\Configuration as ConfigurationMeditation;
+
+require_once(__DIR__.'/Session.php');
+require_once(__DIR__.'/Utils/Debug/Handler.php');
+require_once(__DIR__.'/Utils/Debug/Analysis.php');
+require_once(__DIR__.'/Meditation/Configuration.php');
 
 class Debug
 {

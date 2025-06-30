@@ -13,7 +13,7 @@ namespace Saf\Framework\Mode;
 use Saf\Framework\Manager;
 use Saf\Auto; #Saf\Framework\Manager requires Saf\Auto
 
-require_once(dirname(__DIR__) . '/Manager.php');
+require_once(dirname(__DIR__).'/Manager.php');
 
 class ZendMvc extends Manager{
 
@@ -46,7 +46,7 @@ class ZendMvc extends Manager{
     public static function run($agentId, $options = [])
     {
         // $application = \Saf_Application::load(APPLICATION_ID, APPLICATION_ENV, true);
-        print(\Saf\Debug::stringR(('running saf application', $instance, $options)); //die;
+        print(\Saf\Debug::stringR('running saf application', $instance, $options)); //die;
     }
 
     public static function negotiate($instance, $mode, &$options)

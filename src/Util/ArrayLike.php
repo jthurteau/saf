@@ -12,8 +12,8 @@ namespace Saf\Util;
 
 use Saf\Exception\NotAnArray;
 
-require_once(dirname(__DIR__) . '/Exception/NoDefault.php');
-require_once(dirname(__DIR__) . '/Exception/NotAnArray.php');
+require_once(dirname(__DIR__).'/Exception/NoDefault.php');
+require_once(dirname(__DIR__).'/Exception/NotAnArray.php');
 
 trait ArrayLike
 {

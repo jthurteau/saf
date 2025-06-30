@@ -8,7 +8,7 @@ use Saf\Agent;
 use Saf\Util\Handler\CalendarHandler;
 use Saf\Psr\RequestHandlerFactory;
 
-require_once(dirname(dirname(dirname(__DIR__))) . '/Agent.php');
+require_once(dirname(__DIR__, 3).'/Agent.php');
 
 /**
  * The configuration provider for an Saf managed Application Instance

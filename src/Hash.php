@@ -14,8 +14,8 @@ use Saf\Exception\NoDefault;
 use Saf\Exception\NotAnArray;
 use Saf\Utils\Filter\Truthy;
 
-require_once(__DIR__ . '/Exception/NoDefault.php');
-require_once(__DIR__ . '/Exception/NotAnArray.php');
+require_once(__DIR__.'/Exception/NoDefault.php');
+require_once(__DIR__.'/Exception/NotAnArray.php');
 
 class Hash
 {
@@ -299,22 +299,23 @@ class Hash
         }
         return false;
     }
-    public static function urlencode($paramName, $array = NULL){
+    public static function urlencode(null|string|array $paramName, ?array $array = null): string
+    {
         //#TODO #2.0 swap the order eventually
         //#TODO #2.0 handle nested arrays
         if (is_null($array)) {
             $array = $paramName;
-            $paramName = NULL;
+            $paramName = null;
         }
-        $return = array();
+        $return = [];
         foreach($array as $key => $value) {
             if (is_array($value)) {
                 foreach($value as $innerValue) {
                     $return[] =
                         urlencode(
                             $paramName
-                                ? ($paramName . '[]')
-                                : $key
+                            ? ($paramName . '[]')
+                            : $key
                         ) . '=' . urlencode($innerValue);
                 }
             } else {
@@ -334,17 +335,21 @@ class Hash
      * a query parameter with no matching value is assigned "true"
      * all other values are returned as a literal string, including the empty string
      * @param string $query URLesque (x=y&z=2&present) string of value pairs
+     * @param ?callable $decoder an optional callable that accepts an array, each value pair will be filtered through it
      * @return array
      */
-    public static function fromQuery(string $query): array
-    {// #TODO add encoding/decoding filter param
+    public static function fromQuery(string $query, mixed $decoder = null): array
+    {
         $queryDelim = '?';
         strpos($query, $queryDelim) === 0 && $query = substr($query, strlen($queryDelim));
         $data = [];
         $parts = explode('&', $query);
         foreach ($parts as $pair) {
             $components = explode('=', $pair, 2);
-            $field = $components[0];
+            if ($decoder && is_callable($decoder)) {
+                $components = $decoder($components);
+            }
+            $field = key_exists(0, $components) ? $components[0] : null;
             $value = key_exists(1, $components) ? $components[1] : true;
             $field && ($data[$field] = $value);
         }

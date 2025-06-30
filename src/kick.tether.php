@@ -9,7 +9,9 @@
 
 declare(strict_types=1);
 
-return function (&$options = []){
-    require_once(__DIR__ . '/Kickstart.php');
-    return Saf\Kickstart::go($options);
+use Saf\Kickstart;
+
+return function (array|ArrayAccess &$options = []): mixed {
+    require_once(__DIR__.'/Kickstart.php');
+    return Kickstart::go($options);
 };

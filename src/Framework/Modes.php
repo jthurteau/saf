@@ -13,8 +13,8 @@ namespace Saf\Framework;
 use Saf\Auto;
 use Saf\Cache;
 
-require_once(dirname(__DIR__) . '/Auto.php');
-require_once(dirname(__DIR__) . '/Cache.php');
+require_once(dirname(__DIR__).'/Auto.php');
+require_once(dirname(__DIR__).'/Cache.php');
 
 trait Modes {
 
