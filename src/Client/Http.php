@@ -259,7 +259,7 @@ class Http{
             $query = $this->buildQuery($get);
         } else if (!is_null($get) && '' != trim($get)) {
             $cleanQuery = ltrim($get,'?');
-            $query = '?' . \Saf\Utils\UrlRewrite::makeUrlSafe($cleanQuery);
+            $query = '?' . \Saf\Util\UrlRewrite::makeUrlSafe($cleanQuery);
         } else { #TODO implement $this->query
             $query = '';
         }

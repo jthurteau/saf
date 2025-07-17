@@ -14,7 +14,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Container\ContainerInterface;
 use Saf\Psr\Container;
 use Saf\Hash;
-use Saf\Utils\Filter\Truthy;
+use Saf\Util\Filter\Truthy;
 use Saf\Auto;
 use Saf\Auth\Plugin\Local;
 use Saf\Audit;

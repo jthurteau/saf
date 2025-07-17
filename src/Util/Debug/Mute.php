@@ -8,7 +8,7 @@
  * Mute Utility for Saf\Debug
  */
 
-namespace Saf\Utils\Debug;
+namespace Saf\Util\Debug;
 
 use Saf\Debug;
 

@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Saf\Util;
 
 use Saf\Debug;
-use Saf\Utils\Debug\Ui as DebugUi;
+use Saf\Util\Debug\Ui as DebugUi;
 use Saf\Util\Time;
 
 class Profile

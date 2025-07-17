@@ -8,7 +8,7 @@
  * Filter for boolean like strings
  */
 
-namespace Saf\Utils\Filter;
+namespace Saf\Util\Filter;
 
 use Saf\Filter;
 

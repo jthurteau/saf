@@ -11,11 +11,11 @@ namespace Saf\Util;
 
 use Saf\Util\Location;
 use Saf\Hash;
-use Saf\Utils\Filter\Truthy;
+use Saf\Util\Filter\Truthy;
 use Saf\Debug;
-use Saf\Utils\Debug\Ui as DebugUi;
+use Saf\Util\Debug\Ui as DebugUi;
 use Saf\Client\Http;
-use Saf\Utils\Breadcrumb;
+use Saf\Util\Breadcrumb;
 
 class Layout
 {
@@ -32,6 +32,7 @@ class Layout
     protected static $js = [];
     protected static $min = false;
     protected static $baseUri = null;
+    protected static string $renderingDetected = '';
 
     protected static $_formatMap = [
         'text/html' => self::DEFAULT_HTML_FORMAT,
@@ -127,12 +128,23 @@ class Layout
         }
     }
 
+    public static function renderingDetected(): string
+    {
+        return self::$renderingDetected;
+    }
+
+    protected static function setRenderingDetected(string $where): void
+    {
+        !self::$renderingDetected && (self::$renderingDetected = $where);
+    }
+
     /**
      * ensure relative URLs work regardless of where the application is served from
      * @param string $url
      */
     public static function printLink($url)
     {
+        self::setRenderingDetected(Debug::caller(true));
         print(self::getLink($url));
     }
 
@@ -151,11 +163,13 @@ class Layout
      */
     public static function printRssLink($url)
     {
+        self::setRenderingDetected(Debug::caller(true));
 
     }
 
     public static function printCss($css, $media = 'screen', $extention = '.css')
     {
+        self::setRenderingDetected(Debug::caller(true));
         $cssUri = self::parseUri($css) . ($extention ? $extention : '');
 ?>
         <link href="<?php print($cssUri); ?>" rel="stylesheet" type="text/css" media="<?php print($media);?>"/>
@@ -185,6 +199,7 @@ class Layout
      */
     public static function printAutoCss()
     {
+        self::setRenderingDetected(Debug::caller(true));
         foreach(self::$css as $media => $css) {
             $media = is_array($css) ? $media : 'screen';
             $css = is_array($css) ? $css : [$css];
@@ -196,6 +211,7 @@ class Layout
 
     public static function printCoreCss()
     {
+        self::setRenderingDetected(Debug::caller(true));
         $coreCss = array(
             'reset',
             'jquery/ui/jquery-ui',
@@ -213,6 +229,7 @@ class Layout
 
     public static function printPreloadJs() //#TODO ???
     {
+        self::setRenderingDetected(Debug::caller(true));
 ?>
 <script>
 
@@ -222,6 +239,7 @@ class Layout
 
     public static function printJs($js, $extention='.js')
     {
+        self::setRenderingDetected(Debug::caller(true));
         $jsUri = self::parseUri($js) . $extention ? $extention : '';
 ?>
         <script src="<?php print($jsUri); ?>"></script>
@@ -230,6 +248,7 @@ class Layout
 
     public static function printCoreJs() //#TODO what?
     {
+        self::setRenderingDetected(Debug::caller(true));
         $baseUri = self::parseUri();
         $publicPath = '';
         $coreJs = array(
@@ -265,6 +284,7 @@ $(document).ready(function() {
 
     public static function printPostloadJs() //#TODO ???
     {
+        self::setRenderingDetected(Debug::caller(true));
 ?>
     <script>
 
@@ -281,6 +301,7 @@ $(document).ready(function() {
      */
     public static function printAutoJs()
     {
+        self::setRenderingDetected(Debug::caller(true));
         foreach(self::$js as $script) {
 			$uri = self::parseUri("javascript/{$script}") . '.js';
 			//die(\Saf\Debug::stringR(__FILE__,__LINE__,$uri,self::$baseUri));
@@ -295,6 +316,7 @@ $(document).ready(function() {
      */
     public static function printBreadCrumbs()
     {
+        self::setRenderingDetected(Debug::caller(true));
         $crumbs = Location::getCrumbs();
         if(count($crumbs) > 0) {
 ?>
@@ -357,17 +379,22 @@ $(document).ready(function() {
 
     }
 
-    public static function debugHeader()
+    public static function debugHeader(): void
     {
+        self::setRenderingDetected(Debug::caller(true));
         if(Debug::isVerbose()) {
             DebugUi::printDebugAnchor();
             DebugUi::printDebugReveal();
+            //#CLEAN print_r([__FILE__,__LINE__,'hi17']); die;
             DebugUi::printProfileReveal();
+            
         }
     }
 
-    public static function debugFooter()
+    public static function debugFooter(): void
     {
+        //#CLEAN print_r([__FILE__,__LINE__,'hi11']); die;
+        self::setRenderingDetected(Debug::caller(true));
         if(Debug::isEnabled()){
             DebugUi::flushBuffer();
             DebugUi::printDebugExit();
@@ -384,6 +411,7 @@ $(document).ready(function() {
      */
     public static function printIcon($symbol, $altText='')
     {
+        self::setRenderingDetected(Debug::caller(true));
         print(self::getIcon($symbol, $altText));
     }
 
@@ -405,23 +433,24 @@ $(document).ready(function() {
 
     public static function isReady()
     {
-        return TRUE; //#TODO #2.0.0 return false if not rendering an html view.
+        return true; //#TODO #2.0.0 return false if not rendering an html view.
     }
 
     public static function stateCheck($request = array()) //#TODO #2.0.0 decouple from Session
     {
-        if(array_key_exists('forceDesktop', $request)) {
+        if(key_exists('forceDesktop', $request)) {
             if (Truthy::filter($request['forceDesktop'])) {
                 $_SESSION['forceDesktopView'] = TRUE;
-            } else if (array_key_exists('forceDesktopView', $_SESSION)) {
+            } else if (key_exists('forceDesktopView', $_SESSION)) {
                 unset($_SESSION['forceDesktopView']);
             }
         }
-        return array_key_exists('forceDesktopView', $_SESSION);
+        return key_exists('forceDesktopView', $_SESSION);
     }
 
     public static function jQueryCdn($version = NULL, $uiVersion = NULL) //#TODO move these to Layout_Cdn
     {
+        self::setRenderingDetected(Debug::caller(true));
         if ($version) {
             print("<script src=\"//ajax.googleapis.com/ajax/libs/jquery/{$version}/jquery.min.js\"></script>");
         }
@@ -433,12 +462,14 @@ $(document).ready(function() {
 
     public static function externalJs($name) //#TODO candidate to deprecate
     {
+        self::setRenderingDetected(Debug::caller(true));
         $baseUri = self::parseUri('');
         print("<script src=\"{$baseUri}javascript/external/{$name}.js\" type=\"text/javascript\" charset=\"utf\"></script>");
     }
 
     public static function foundationCss($version, $addons = array())
     {
+        self::setRenderingDetected(Debug::caller(true));
         $internal = array('magellan','dropdown'); //#TODO #1.11.0 we only need to do this when not using the min version?
         $baseUri = self::parseUri('');
         if ($version) {
@@ -452,6 +483,7 @@ $(document).ready(function() {
     }
     public static function foundationJs($version, $addons = array())
     {
+        self::setRenderingDetected(Debug::caller(true));
         $internal = array(
             'abide',
             'accordion',
@@ -494,6 +526,7 @@ $(document).ready(function() {
 
     public static function foundationPrerequisites($optional = [])
     {
+        self::setRenderingDetected(Debug::caller(true));
         if (!is_array($optional)) {
             $optional = array($optional);
         }
@@ -506,6 +539,7 @@ $(document).ready(function() {
 
     public static function foundationLateIncludes($include = array())
     {
+        self::setRenderingDetected(Debug::caller(true));
         $baseUri = self::parseUri('');
         if (array_key_exists('fastclick', $include) || in_array('fastclick',$include)) {
             print("<script src=\"{$baseUri}foundation/js/vendor/fastclick.js\" type=\"text/javascript\" charset=\"utf\"></script>");
@@ -516,6 +550,7 @@ $(document).ready(function() {
     
     public static function bootStrapCdn($version) //#TODO deprecate?
     {
+        self::setRenderingDetected(Debug::caller(true));
         print('');
     }
 

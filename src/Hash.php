@@ -12,7 +12,7 @@ namespace Saf;
 
 use Saf\Exception\NoDefault;
 use Saf\Exception\NotAnArray;
-use Saf\Utils\Filter\Truthy;
+use Saf\Util\Filter\Truthy;
 
 require_once(__DIR__.'/Exception/NoDefault.php');
 require_once(__DIR__.'/Exception/NotAnArray.php');

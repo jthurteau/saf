@@ -13,12 +13,15 @@
 
 declare(strict_types=1);
 
-return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
+return function &(array|ArrayAccess &$canister = []) : array|ArrayAccess {
     static $init = null; #NOTE static closure vars only get assigned once.
     if ($init) {
         return $canister;
     }
     $aim = 'Agent installer misconfigured, ';
+    if (!is_array($canister) && !($canister instanceof ArrayAccess)) {
+        throw new Exception("{$aim}Canister Invalid", 126);
+    }
     if (
         !key_exists('installPath', $canister)
     ) {
@@ -36,7 +39,7 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     /**
      * noop callable
      */
-    $registry['_n'] = function(){
+    $registry['_n'] = function (): void {
 
     };
 
@@ -46,7 +49,7 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
      * a callable in the canister named $lookup, otherwise:
      * the noop callable
      */
-    $registry['_c'] = function ($lookup) use (&$canister){
+    $registry['_c'] = function ($lookup) use (&$canister): mixed {
         //#TODO should _c return internal callables? (_*)
         return 
             is_callable($lookup)
@@ -62,14 +65,14 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     /**
      * returns values (single or iterable) as iterable
      */
-    $registry['_a'] = function ($v){
-        return is_array($v) || ($v instanceof ArrayAccess) ? $v : [$v];
+    $registry['_a'] = function ($v): array|Traversable {
+        return is_array($v) || ($v instanceof Traversable) ? $v : [$v];
     };
 
     /**
      * installs $util as a callable
      */
-    $registry['_i'] = function ($util) use (&$canister){
+    $registry['_i'] = function ($util) use (&$canister): void {
         $installablePath = 'src/kickstart/installable';
         $file = "{$canister['installPath']}/{$installablePath}/{$util}.php";
         if(!is_readable($file)) {
@@ -98,7 +101,7 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     /**
      * generates a filepath based on $name and $type
      */
-    $registry['_f'] = function (string $name, string $type = '') use (&$canister){
+    $registry['_f'] = function (string $name, string $type = '') use (&$canister) {
         $bridge = 
             strpos($name, '/src') === (strlen($name) - 4 )
             ? '/'
@@ -120,22 +123,41 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     };
 
     /**
-     * fatal error trigger, throws an exception if $fail
+     * fatal error trigger labeled by $name, throws an exception if $fail
+     * optionaly, $blame (accepts a string (e.g. file name) or Throwable)
+     * if no params are passed, a list of previously triggered errors is returned.
      */
-    $registry['_e'] = function($name, $file = null, $fail = null){
+    $registry['_e'] = function(?string $name = null, null|Throwable|string $blame = null, ?string $fail = null): mixed {
+        static $history = []; #NOTE static closure vars only get assigned once.
+        if (is_null($name)) {
+            return $history;
+        }
+        !key_exists($name, $history) && ($history[$name] = []);
+        $blameString = is_a($blame, 'Throwable') ? $blame->getMessage() : $blame;
+        $origin = is_a($blame, 'Throwable') ? $blame->getPrevious() : null;
+        $historyString =
+            $fail ? $fail : (string)$blameString;
         if (!is_null($fail)) {
             $failMessage = str_replace('{$}', $name, $fail);
-            $fileException = $file ? new Exception($file) : null;
+            $fileException = $blame ? ( is_object($blame) ? $blame : new Exception($blame)) : null;
+            $record = ['failure' => $failMessage];
+            $blame && ($record['blame'] = $blameString);
+            $origin && ($record['origin'] = [$origin->getMessage(), $origin->getTraceAsString()]);
+            $history[$name][] = $record;
             throw new Exception($failMessage, 127, $fileException);
         } else {
-            return;
+            $record = [];
+            $blame && ($record['blame'] = $blameString);
+            $origin && ($record['origin'] = [$origin->getMessage(), $origin->getTraceAsString()]);
+            $history[$name][] = $record;
+            return null;
         }
     };
 
     /**
      * default deep merge logic, preserve named keys and union numerically keyed values
      */
-    $registry['_m'] = function($original, $new) use (&$canister) {
+    $registry['_m'] = function(int|string|array|ArrayAccess $original, $new) use (&$canister): int|string|array|ArrayAccess {
         if (
             is_array($original) || ($original instanceof ArrayAccess)
             || is_array($new) || ($new instanceof ArrayAccess)
@@ -156,9 +178,73 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     };
 
     /**
+     * summarize potentially large trees of data
+     */
+    $registry['_s'] = function($original, $depth = null) use (&$canister): string {
+        if (is_null($depth) || is_nan($depth)) {
+            $depth = key_exists('maxSummaryDepth', $canister) ? $canister['maxSummaryDepth'] : 10;
+        }
+        if (
+            is_array($original) || is_object($original)
+        ) {
+            $return = gettype($original) . '( ';
+            if (is_array($original)) {
+                $first = true;
+                foreach($original as $key => $value) {
+                    $return .= (
+                        ($first ? '' : ', ') 
+                        . "[{$key}] => "
+                        . (
+                            $depth > 1 
+                            ? $canister['_s']($value, $depth - 1) 
+                            : ('[' . gettype($value) . ']' )
+                        )
+                    );
+                    $first = false;
+                }
+            } else {
+                $objectSummary = ': ';
+                if (is_a($original, 'Error') || is_a($original, 'Exception')) {
+                    $objectSummary .= (
+                        $original->getMessage() 
+                        . ': \n' . $original->getTraceAsString()
+                        . (
+                            $original->getPrevious() 
+                            ? (
+                                $depth > 1
+                                ? $canister['_s']($original->getPrevious(), $depth - 1)
+                                : ': has previous error/exeception beyond depth'
+                            ) : ''
+                        )
+                    );
+                }
+                return $return .= (get_class($original) . $objectSummary . ')'); //#TODO more
+            }
+
+            return $return . ')';
+        } elseif (is_string($original)) {
+            $original = htmlentities($original);
+        }
+        return print_r($original, true);
+    };
+
+    /**
+     * handler for failed venting (different pattern than other file types)
+     * #TODO only do this in dev, replace default production behavior with something pluggable and more appropriate
+     */
+    $registry['_v'] = function($name, $file = null, $fail = 'Failed to load vent: {$}'): void{
+        $failMessage = str_replace('{$}', $name, $fail);
+?>
+    <div class="safVentError">
+        <span class="location"><?php print(__FILE__. '  :' . __LINE__); ?></span> 
+        <span class="message"><?php print($failMessage); ?></span>
+    </div>
+<?php
+};
+    /**
      * installs one or more installables in $utilList
      */
-    $registry['install'] = function($utilList) use (&$canister) {
+    $registry['install'] = function($utilList) use (&$canister): void {
         foreach ($canister['_a']($utilList) as $uIndex => $u) {
             if (!is_string($u)) {
                 $message = "Agent installer: [{$uIndex}] invalid name.";
@@ -186,23 +272,56 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
      * returns a new canister with references to every value, but no callables
      * this allows seralization and safer introspection
      */
-    $registry['shell'] = function &() use (&$canister){
+    $registry['shell'] = function &($redact = true) use (&$canister): array|ArrayAccess {
         $shell = [];
+        $installed = key_exists('installed', $canister) ? $canister['installed'] : [];
         foreach ($canister as $key => $value) {
             if ('installed' == $key) {
                 $shell['previouslyInstalled'] = $canister[$key];
             } elseif (!is_callable($canister[$key])) {
                 $shell[$key] = &$canister[$key];
+            } else {
+                $v = new ReflectionFunction($canister[$key]);
+                $used = $v->getClosureUsedVariables();
+                if (!in_array($canister, $used) && $v->getFileName() != __FILE__) {
+                    $shell[$key] = &$canister[$key];
             }
         }
+        } 
+        if ($redact) {
+            $shell = $canister['redact']($shell);
+        }
         return $shell;
+    };
+
+    /**
+     * redact potentially sensitive information
+     */
+    $registry['redact'] = function($sensitive = null) use (&$canister): array|ArrayAccess { //#TODO set $senstive to string or callable
+        static $list = []; #NOTE static closure vars only get assigned once.
+        if (is_array($sensitive)) {
+            $redacted = [];
+            //#TODO merge in live redaction data from canister
+            foreach($sensitive as $key => $value) {
+                if (in_array($key, $list) || in_array($value, $list)) {
+                    $redacted[$key] = '**redacted**';
+                } else {
+                    $redacted[$key] = $value;
+                }
+            }
+            //#TODO also support callables to prune: foreach($list ... if is_callable... redacted = $callable($sensitive))
+            return $redacted;
+        } else {
+            $list[] = $sensitive;
+            return $list;
+        }
     };
 
     /**
      * apply the callable $method to each value in $options until:
      * one returns truthy, return that callable's result
      */
-    $registry['first'] = function ($options, $method) use (&$canister){
+    $registry['first'] = function ($options, $method) use (&$canister): mixed {
         $callable = $canister['_c']($method);
         if (is_null($callable)) {
             return null;
@@ -219,7 +338,7 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
      * apply the callable $method to each value in $options:
      * return all results
      */
-    $registry['each'] = function ($options, $method) use (&$canister){
+    $registry['each'] = function ($options, $method) use (&$canister): array {
         $callable = $canister['_c']($method);
         if (is_null($callable)) {
             return null;
@@ -238,7 +357,7 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
      * tests each $options with $method:
      * returns true when the first returns truthy
      */
-    $registry['any'] = function ($options, $method = null) use (&$canister){
+    $registry['any'] = function ($options, $method = null) use (&$canister): bool {
         $callable =
             !is_null($method)
             ? $canister['_c']($method)
@@ -258,7 +377,7 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
      * tests each $options with $method:
      * returns false when the first returns falsy, true otherwise
      */
-    $registry['all'] = function ($options, $method = null) use (&$canister){
+    $registry['all'] = function ($options, $method = null) use (&$canister): bool {
         foreach($canister['_a']($options) as $optionKey => $option) {
             $result = $canister['any']([$option], $method);
             if (!$result) {
@@ -271,7 +390,11 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     /**
      * tether the canister to $tether
      */
-    $registry['tether'] = function (string $tether, ?string $fail = null) use (&$canister) {
+    $registry['tether'] = function (
+        string $tether, ?string $fail = null
+    ) use (
+        &$canister
+    ): mixed {
         $tetherFile = $canister['_f']($tether, '.tether');
         $genericFile = $canister['_f']($tether);
         if(!file_exists($tetherFile) || !is_readable($tetherFile)){
@@ -289,12 +412,13 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     /**
      * load root $root
      */
-    $registry['root'] = function(string $root, ?string $fail = null) use (&$canister) {
+    $registry['root'] = function(string $root, ?string $fail = null) use (&$canister): mixed {
         //#TODO
         if (strpos($root,':') !== false) {
             return null; //#TODO parse and unserialize
         }
         //print_r([__FILE__,__LINE__,'[root]',$root,$fail]);
+        try {
         $rootFile = $canister['_f']($root, '.root');
         $genericFile = $canister['_f']($root);
         if(!file_exists($rootFile) || !is_readable($rootFile)){
@@ -306,6 +430,10 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
         } else {
             $root = require($rootFile); 
         } #TODO $file = $canister['_v']($name, $type, $fail); //validate
+        } catch (\Error | \Exception $e) {
+            $rootException = new Exception($rootFile, 0, $e);
+            return $canister['_e']($root, $rootException, $fail);
+        }
         //#TODO store invalid root data in canister?
         //print_r([__FILE__,__LINE__,'[root:result]',$root]);
         return 
@@ -317,7 +445,7 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     /**
      * vent data in $final (along with the $canister) to $vent
      */
-    $registry['vent'] = function (mixed $final, string|callable|null $vent = null) use (&$canister) { //#TODO ?string or callable
+    $registry['vent'] = function ($final, $vent = null) use (&$canister): mixed { //#TODO ?string or callable
         $defaultPayload = ['result' => $final, 'ventFile' => __FILE__];
         $errors = error_get_last();
         $allowLeak = (
@@ -350,6 +478,8 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
             #TODO handle auditing for failed vents
             return is_callable($vent) ? $vent($final, $canister) : $vent;
         } else {
+            $defaultPayload['result'] = $canister['_s']($defaultPayload['result']);
+            $defaultPayload['debugCanister'] = $canister['_s']($defaultPayload['debugCanister']);
             print_r($defaultPayload);
             return true;
         }
@@ -358,9 +488,9 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     //# TODO $registry['sema'] = function
 
     /**
-     * store executable state with quay //#TODO deprecate in favor on inlet
+     * store executable state with quay 
      */
-    $registry['quay'] = function(string $quay, ?string $fail = null) use (&$canister) {
+    $registry['quay'] = function(mixed $data, string $quay, ?string $fail = null) use (&$canister): mixed {
         $quayFile = $canister['_f']($quay, '.quay');
         $genericFile = $canister['_f']($quay);
         if(!file_exists($quayFile) || !is_readable($quayFile)){
@@ -372,13 +502,13 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
         } else {
             $quay = require($quayFile);
         } #TODO $file = $canister['_v']($name, $type, $fail); //validate
-        return $quay;
+        return is_callable($quay) ? $quay($data, $canister) : $quay;
     };
 
     /**
      * pass executable state to store with inlet 
      */
-    $registry['inlet'] = function($data, string $inlet, ?string $fail = null) use (&$canister) {
+    $registry['inlet'] = function(mixed $data, string $inlet, ?string $fail = null) use (&$canister) {
         $inletFile = $canister['_f']($inlet, '.inlet');
         $genericFile = $canister['_f']($inlet);
         if(!file_exists($inletFile) || !is_readable($inletFile)){
@@ -391,19 +521,17 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
             $inlet = require($inletFile);
         } #TODO $file = $canister['_v']($name, $type, $fail); //validate
         return is_callable($inlet) ? $inlet($data, $canister) : $inlet;
-        return $inlet;
     };
 
     /**
      * merge values in $root to the canister, preserves values for existing keys
      */
-    $registry['merge'] = function($root, ?string $fail = null) use (&$canister) { #TODO string|array|\Saf\Canister
+    $registry['merge'] = function($root, ?string $fail = null) use (&$canister): void { #TODO string|array|ArrayAccess
         //print_r([__FILE__,__LINE__,'[merge]',$root,$fail]);
         if (!is_array($root) && !($root instanceof ArrayAccess)) {
             $root = $canister['root']($root, $fail);
         }
-        //print_r([__FILE__,__LINE__,'[merge::root]',$root,$fail]);
-        foreach($root as $rootKey => $rootValue) {
+        foreach($root ?: [] as $rootKey => $rootValue) {
             key_exists($rootKey, $canister) || ($canister[$rootKey] = $rootValue);
             //#TODO if is_callable, rebind to $canister
         }
@@ -412,7 +540,7 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     /**
      * overwrite values in $root to the canister
      */
-    $registry['replace'] = function($root, ?string $fail = null) use (&$canister) { #TODO string|array|\Saf\Canister
+    $registry['replace'] = function($root, ?string $fail = null) use (&$canister): void { #TODO string|array|ArrayAccess
         if (!is_array($root) && !($root instanceof ArrayAccess)) {
             $root = $canister['root']($root, $fail);
         }
@@ -425,7 +553,11 @@ return function &(array|\Saf\Canister &$canister = []) : array|\Saf\Canister {
     /**
      * deep merge values in $root to the canister using $method (defaults to _m)
      */
-    $registry['deep'] = function($root, ?string $fail = null, ?callable $method = null) use (&$canister) { #TODO string|array|\Saf\Canister
+    $registry['deep'] = function(
+        $root, ?string $fail = null, ?callable $method = null
+    ) use (
+        &$canister
+    ): void {
         if (!is_array($root) && !($root instanceof ArrayAccess)) {
             $root = $canister['root']($root, $fail);
             if (!is_array($root)) {

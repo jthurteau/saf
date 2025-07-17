@@ -8,7 +8,7 @@
  * Utility functions for Breadcrumb Navigation
  */
 
-namespace Saf\Utils;
+namespace Saf\Util;
 
 use Saf\Hash;
 

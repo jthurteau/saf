@@ -14,7 +14,7 @@ use Saf\Auth\Plugin\Local;
 use Psr\Http\Message\ServerRequestInterface; #TODO currently still uses bare access
 use Psr\Container\ContainerInterface;
 use Saf\Psr\Container;
-use Saf\Utils\Filter\Truthy;
+use Saf\Util\Filter\Truthy;
 use Saf\Auto;
 use Saf\Hash;
 use Saf\Session;
@@ -559,30 +559,43 @@ class Auth
 
     public static function allowedSimulatedLoginUsername(ServerRequestInterface $request): false|string
     {
-        $usernames = 
-            defined(self::SIMULATED_AUTH_USERS)
-            ? Hash::coerce(self::parseUserList(constant(self::SIMULATED_AUTH_USERS), false), Hash::MODE_AGGRESSIVE_TRUNCATE)
-            : [];
+        return self::getUsernameForSimulatedKey(self::getRequestSimulatedLoginKey($request)) ?: false;
+    }
+
+    public static function getRequestSimulatedLoginKey(ServerRequestInterface $request): ?string
+    {
         $query = $request->getQueryParams();
-        $simKey = 
+        return 
             self::SIMULATED_AUTH_KEY_PARAM
-            && key_exists(self::SIMULATED_AUTH_KEY_PARAM, $query) 
+                && key_exists(self::SIMULATED_AUTH_KEY_PARAM, $query) 
             ? (string)$query[self::SIMULATED_AUTH_KEY_PARAM] 
             : null;
-        if ($simKey) {
-            foreach(self::$simKeys as $keyIndex => $key) {
-                if ($key === $simKey) {
-                    $possibleMatch = trim((string)$keyIndex);
-                    if ($usernames && is_numeric($keyIndex)) {
-                        return current($usernames);
-                    } elseif (in_array($possibleMatch, $usernames)) {
-                        return $possibleMatch;
-                    }
+    }
+    
+    public static function getUsernameForSimulatedKey(?string $key): ?string
+    {
+        $usernames = self::allowedSimulatedUsernames();
+        foreach(self::$simKeys as $keyIndex => $match) {
+            if ($key === $match) {
+                $possibleMatch = trim((string)$keyIndex);
+                if ($usernames && is_numeric($keyIndex)) {
+                    return current($usernames);
+                } elseif (in_array($possibleMatch, $usernames)) {
+                    return $possibleMatch;
                 }
             }
         }
-        return false;
+        return null;
     }
+
+    public static function allowedSimulatedUsernames(): array
+    {
+        return
+            defined(self::SIMULATED_AUTH_USERS)
+            ? Hash::coerce(self::parseUserList(constant(self::SIMULATED_AUTH_USERS), false), Hash::MODE_AGGRESSIVE_TRUNCATE)
+            : [];
+    }
+
 
     public static function simulatedLoginValid(ServerRequestInterface $request): bool
     {

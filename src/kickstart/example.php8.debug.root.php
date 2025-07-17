@@ -14,34 +14,43 @@
 declare(strict_types=1);
 
 return (static function(){
-    error_reporting(E_ALL | E_STRICT);
+    defined('DEBUG_START_TIME') || define('DEBUG_START_TIME', microtime(true));
+    error_reporting(E_ALL);
 
     $app = require(__DIR__ . '/app.root.php');
+    $custom = [
+        # 'example' => 'foo',
+    ];
 
     $debug = [
-        'applicationHandle' => 'ems-tools', // #NOTE(2)  basename(__DIR__) detection
-        // 'applicationHandle' => basename(__DIR__), //# doesn't work in all local-dev deployment options
+        'applicationHandle' => 'saf-tools', # TODO the basename(__DIR__) detection doesn't work in all local-dev deployment options
         'environmentName' => 'dev',
         'localDevEnabled' => true,
-        'resolvableTools'=> ['log'],
-        'applicationSuggestedPort' => '8080',
+        'forceDebug' => true,
+        # 'resolvableTools'=> ['log'],
+        # 'applicationSuggestedPort' => '8080',
         'throwMeditations' => true,
         'psrAutoloading' => true,
         'applicationEnv' => 'local-dev',
-        'vendorPath' => '/opt/application/vendor',
-        //#COMMON
-        'forceDebug' => true,
-        'enableDoctor' => true,
-        'snoopLog' => true, #boolean to enable/disable, or string to enable with specified log path
-        #NOTE not used yet#'snoopLogPath' => '/var/www/storage/rooms/',
-        'gatewayVent' => function($result, &$canister = null) {
-            (require __DIR__ . '/local-dev.debug.vent.php')($result, $canister);
-            return 1;
+        # 'composerVendor' => '/opt/application/vendor-for/rooms',
+        # 'foundationPath' => '/opt/applicattion/vendor/Saf/src',
+
+        # 'enableDoctor' => true, #boolean to enable/disable
+        # 'snoopLog' => true, #boolean to enable/disable, or string to enable with specified log path
+        # NOTE not used yet#'snoopLogPath' => '/var/www/storage/rooms/',
+        ] + $custom + $app; # NOTE former overrides latter
+
+        $localDevVent = __DIR__ . '/local-dev.debug.vent.php';
+        if (file_exists($localDevVent)) {
+            $debug['gatewayVent'] = function($result, &$canister = null) use ($localDevVent) {
+                $localDevVent =__DIR__ . '/local-dev.debug.vent.php';
+                (require $localDevVent)($result, $canister);
+                return 1;
+            };
         }
-    ] + $app;  //#NOTE former overrides latter
 
     $debugConstants = [
-            'Saf\AUTH_SIMULATED_USERS' => 'username',
+            'Saf\AUTH_SIMULATED_USERS' => 'UNITYID',
     ];
     
     key_exists('stdInlets', $debug) || $debug['stdInlets'] = []; 
@@ -49,7 +58,7 @@ return (static function(){
         || $debug['stdInlets']['const'] = [];
     $debug['stdInlets']['const'] = $debugConstants + $debug['stdInlets']['const'];
 
-    $debugTools = ['doctor'];
+    $debugTools = [];//'doctor'];
     $debug['inlineTools'] =
         key_exists('inlineTools', $debug)
         ? array_unique(array_merge($debugTools, $debug['inlineTools']))

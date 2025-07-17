@@ -10,16 +10,20 @@
 
 namespace Saf;
 
-//use Saf\Cast;
+use Saf\Cast;
 use Saf\Session;
+use Saf\Util\Debug\Handler;
+use Saf\Util\Debug\Analysis;
+use Saf\Util\Debug\Ui;
+//#TODO Saf\Util\Debug\Mute?
+//use Saf\Util\Debug\Trace;
 //#TODO patch into Saf\Meditation;
-use Saf\Utils\Debug\Handler;
-use Saf\Utils\Debug\Analysis;
 use Saf\Meditation\Configuration as ConfigurationMeditation;
 
 require_once(__DIR__.'/Session.php');
-require_once(__DIR__.'/Utils/Debug/Handler.php');
-require_once(__DIR__.'/Utils/Debug/Analysis.php');
+require_once(__DIR__.'/Util/Debug/Handler.php');
+require_once(__DIR__.'/Util/Debug/Analysis.php');
+require_once(__DIR__.'/Util/Debug/Ui.php');
 require_once(__DIR__.'/Meditation/Configuration.php');
 
 class Debug
@@ -27,92 +31,103 @@ class Debug
     /**
      * mode flag that forces debugging to be enabled and verbose
      */
-    const MODE_FORCE = 'force';
+    public const string MODE_FORCE = 'force';
 
     /**
      * mode flag that forces debugging to be disabled and silent
      */
-    const MODE_DISABLE = 'disable';
+    public const string MODE_DISABLE = 'disable';
 
     /**
      * mode flag that enables debugging, defaults to verbose (toggle-able) 
      */
-    const MODE_ON = 'on';
+    public const string MODE_ON = 'on';
 
     /**
      * mode flag that temporarily turns off debugging features
      */
-    const MODE_OFF = 'off';
+    public const string MODE_OFF = 'off';
 
     /**
      * mode flag that leaves debugging enabled, but disables non-profiling output
      */
-    const MODE_SILENT = 'silent';
+    public const string MODE_SILENT = 'silent';
 
     /**
      * debugging level that indicates an error or exception
      */
-    const LEVEL_ERROR = 'ERROR';
+    public const string LEVEL_ERROR = 'ERROR';
 
     /**
      * debugging level that indicates a non-error to be profiled
      */
-    const LEVEL_PROFILE = 'PROFILE';
+    public const string LEVEL_PROFILE = 'PROFILE';
     
     /**
      * debugging level that indicates a non-error (not profiled)
      */
-    const LEVEL_STATUS = 'STATUS';
+    public const string LEVEL_STATUS = 'STATUS';
     
     /**
      * error mode that enables internal error/exception/shutdown handlers
      */
-    const ERROR_MODE_INTERNAL = 'internal';
+    public const string ERROR_MODE_INTERNAL = 'internal';
     
     /**
      * error mode that enables external plug-in driven handling
      */
-    const ERROR_MODE_PLUGIN = 'plugin';
+    public const string ERROR_MODE_PLUGIN = 'plugin';
     
     /**
      * error mode that disables all internal handling features
      */
-    const ERROR_MODE_EXTERNAL = 'default';
+    public const string ERROR_MODE_EXTERNAL = 'default';
 
     /**
      * simplest trace output level that excludes args
      */
-    const TRACE_BARE = 'bare';
+    public const string TRACE_BARE = 'bare';
 
     /**
      * trace output level that mimics Exception::traceAsString
      */
-    const TRACE_SHALLOW = 'shallow';
+    public const string TRACE_SHALLOW = 'shallow';
 
     /**
      * trace output level with more detail than shallow;
      */
-    const TRACE_DIGEST = 'digest';
+    public const string TRACE_DIGEST = 'digest';
 
     /**
      * trace output level that scans the depth of structures and generates prints
      */
-    const TRACE_DEEP = 'deep';
+    public const string TRACE_DEEP = 'deep';
 
     /**
      * trace output level, caches the full details of printed structures
      */
-    const TRACE_VAULTED = 'vault';
+    public const string TRACE_VAULTED = 'vault';
 
     /**
      * standard EOL
      */
-    const EOL = "\n";
+    public const string EOL = "\n";
+   
+    /**
+     * key in $_Session to store debug mode state
+     */
+    public const string SESSION_SWITCH = 'debug';
 
     /**
-     * trace argument depth
+     * key in $_Session to store debug mode state
      */
-    
+    public const string SESSION_OFF_SWITCH = 'no'.self::SESSION_SWITCH;
+
+    /**
+     * key in $_Session to store debug mode state
+     */
+    public const string SESSION_MUTE_SWITCH = 'silent'.self::SESSION_SWITCH;
+
     /**
      * current debugging mode
      */
@@ -125,26 +140,6 @@ class Debug
     protected static $sessionReady = false;
 
     /**
-     * the 'display_errors' setting to use when enabled
-     */
-    protected static $enabledDisplayMode = 1;
-
-    /**
-     * the 'display_errors' setting to use when disabled (detected from default setting at init)
-     */
-    protected static $disabledDisplayMode = 0;
-
-    /**
-     * the error_level to use for handling when enabled
-     */
-    protected static $enabledErrorLevel = -1;
-
-    /**
-     * the error_level to use for handling when disabled
-     */
-    protected static $disabledErrorLevel = null;
-
-    /**
      * trace formatting rules to use on halt
      */
     protected static $haltRenderLevel = self::TRACE_DIGEST;
@@ -155,20 +150,18 @@ class Debug
      * @param mixed $errorHandler indicates an ERROR_MODE_ contant, or handling plug-in object
      */
     public static function init(
-        string $mode = self::MODE_SILENT, 
-        $errorHandler = self::ERROR_MODE_EXTERNAL
-    ){
-        if (is_null(self::$disabledErrorLevel)) {
-            self::$disabledErrorLevel = error_reporting();
-        }
+        ?string $mode = self::MODE_SILENT, 
+        null|string|array|Object $errorHandler = self::ERROR_MODE_EXTERNAL
+    ): ?string {
+        Handler::init();
         self::sessionCheck();
         if ($errorHandler == self::ERROR_MODE_INTERNAL) {
             Handler::takeover();
-        } elseif (!is_null($errorHandler) && $errorHandler != self::ERROR_MODE_EXTERNAL) {
+        } elseif (!is_null($errorHandler) && $errorHandler !== self::ERROR_MODE_EXTERNAL) {
             Handler::install($errorHandler);
         }
         self::switchMode($mode);
-        // print(self::stringR('switch debug mode', __FILE__, __LINE__, self::$mode,isset($_SESSION)?$_SESSION:[],self::isEnabled(),self::isVerbose()));
+        return self::$mode;
     }
 
     /**
@@ -183,7 +176,7 @@ class Debug
     /**
      * @return bool force enabled, verbose
      */
-    public static function isForced()
+    public static function isForced(): bool
     {
         return self::MODE_FORCE == self::$mode;
     }
@@ -191,7 +184,7 @@ class Debug
     /**
      * @return bool is not force disabled
      */
-    public static function isAvailable()
+    public static function isAvailable(): bool
     {
         return self::MODE_DISABLE != self::$mode;
     }
@@ -199,10 +192,10 @@ class Debug
     /**
      * @return bool is enabled (may be verbose or silenced)
      */
-    public static function isEnabled()
+    public static function isEnabled(): bool
     {
         return
-            self::$mode
+            !is_null(self::$mode)
             && self::$mode != self::MODE_OFF
             && self::$mode != self::MODE_DISABLE;
     }
@@ -211,7 +204,7 @@ class Debug
      * @param string $mode MODE_ constant to switch to
      * @return string resulting MODE_
      */
-    public static function switchMode(?string $mode = self::MODE_OFF)
+    public static function switchMode(?string $mode = self::MODE_OFF): void
     {
         is_null($mode) && ($mode = self::MODE_OFF);
         if (self::isForced() || !self::isAvailable()) {
@@ -239,7 +232,7 @@ class Debug
     }
 
     /**
-     * @return bool session data detected
+     * @return bool session detected (session is ready and available)
      */
     public static function sessionCheck(): bool
     {
@@ -248,11 +241,11 @@ class Debug
     }
 
     /**
-     * Checks for session data, if present re-applies mode.
-     *   Frameworks and Apps should call this when session is initialized 
-     *   after debug.
+     * writes debug mode to session if the session was not available during init 
+     * and reapplies mode settings
+     * ! Frameworks and Apps should call this if session is initialized after debug.
      */
-    public static function sessionReadyListner()
+    public static function sessionReadyListner(): void
     {
         if (!self::$sessionReady && Session::ready()) {
             self::sessionCheck();
@@ -261,59 +254,58 @@ class Debug
     }
 
     /**
-     * Updates session data (when available) with current mode
+     * updates session data (when available) with current mode
      */
     public static function updateSession(): void
     {
         if (self::$sessionReady) {
-            Session::set('debug', Cast::dmvl(self::$mode, self::MODE_ON, self::MODE_OFF));
+            Session::set(self::SESSION_SWITCH, Cast::dmvl(self::$mode, self::MODE_ON, self::MODE_OFF));
         }
     }
 
     /**
      * turns off "debugging" features (internal and PHP native)
      */
-    public static function off($native = true)
+    public static function off(?bool $native = true): void
     {
-        self::hush($native);
         Handler::off();
+        $native && self::updateNativeState();
     }
 
     /**
      * mutes "debugging" features (internal and PHP native)
      */
-    public static function hush($native = true)
+    public static function hush(?bool $native = true): void
     {
-        if ($native) {
-            ini_set('display_errors', self::$disabledDisplayMode);
-            error_reporting(self::$disabledErrorLevel);
-        }
         Handler::hush();
+        $native && self::updateNativeState();
     }
 
     /**
      * turns on "debugging" features and makes output verbose (internal and PHP native)
      */
-    public static function on($native = true)
+    public static function on(?bool $native = true): void
     {
-        self::broadcast($native);
         Handler::on();
+        $native && self::updateNativeState();
     }
 
     /**
-     * unmutes "debugging" features (internal and PHP native)
+     * unmutes "debugging" features (internal or PHP native)
      */
-    public static function broadcast($native = true)
+    public static function broadcast(?bool $native = true): void
     {
-        if ($native) {
-            $displayMode = 
-                Handler::allowBroadcast() #TODO moved to Handler
-                ? self::$disabledDisplayMode
-                : self::$enabledDisplayMode;
-            ini_set('display_errors', $displayMode);
-            error_reporting(self::$enabledErrorLevel);
-        }
         Handler::broadcast();
+        $native && self::updateNativeState();
+    }
+
+    /**
+     * updates the native PHP error display/reporting
+     */
+    protected static function updateNativeState(): void
+    {
+        ini_set('display_errors', Handler::getDisplayMode());
+        error_reporting(Handler::getErrorLevel());
     }
 
     /**
@@ -322,21 +314,20 @@ class Debug
     public static function auto()
     {//#TODO allow bindind to PSR7 on init?
         $oldMode = self::$mode;
-        if (key_exists('nodebug', $_GET)) {
+        if (key_exists(self::SESSION_OFF_SWITCH, $_GET)) {
             self::$mode = self::MODE_OFF;
-        } elseif (key_exists('debug', $_GET)) {
+        } elseif (key_exists(self::SESSION_SWITCH, $_GET)) {
             self::$mode = self::MODE_ON;
-        } elseif (key_exists('silentdebug', $_GET)) {
+        } elseif (key_exists(self::SESSION_MUTE_SWITCH, $_GET)) {
             self::$mode = self::MODE_SILENT;
-        } elseif (self::$sessionReady && Session::has('debug')) {
-            self::$mode = Cast::mvl(Session::get('debug'), self::MODE_ON, self::MODE_OFF);
+        } elseif (self::$sessionReady && Session::has(self::SESSION_SWITCH)) {
+            self::$mode = Cast::mvl(Session::get(self::SESSION_SWITCH), self::MODE_ON, self::MODE_OFF);
         }
         switch (self::$mode) {
             case self::MODE_OFF:
                 self::off();
                 break;
             case self::MODE_SILENT:
-                //self::on();
                 self::hush();
                 break;
             case self::MODE_ON:
@@ -347,10 +338,7 @@ class Debug
                 self::$mode = $oldMode;
                 throw new ConfigurationMeditation("Unknown Debug Mode: {$badMode}");
         }
-
-        if (self::$sessionReady) {
-            self::updateSession();
-        }
+        self::$sessionReady && self::updateSession();
     }
 
     /**
@@ -375,31 +363,27 @@ class Debug
     }
 
 
-
-    public static function setErrorLevel($level)
+    public static function setErrorLevel($level): void
     {
-        self::$enabledErrorLevel = $level;
-        if (self::isVerbose()) {
-            error_reporting($level);
-        }
+        Handler::enabledErrorLevel($level);
     }
 
-    public static function out($message, $level = self::LEVEL_ERROR)
+    public static function out(string $message, ?string $level = self::LEVEL_ERROR): void 
     {
         Handler::out($level, $message, self::getTrace());
     }
 
-    public static function outRaw($message, $preformat = false)
+    public static function outRaw(string $message, ?bool $preformat = false): void
     {
         Handler::outRaw($message, self::getTrace());
     }
 
-    public static function outData($message, $level = self::LEVEL_ERROR)
+    public static function outData(mixed $message, ?string $level = self::LEVEL_ERROR): void
     {
         Handler::outData($level, $message, self::getTrace());
     }
 
-    public static function outRawData($message, $preformat = false)
+    public static function outRawData(mixed $message, ?bool $preformat = false): void
     {
         Handler::outRawData($message, $preformat);
     }
@@ -407,6 +391,11 @@ class Debug
     public static function introspectData(mixed $message): string //#TODO consolidate with Hash:introspectData?
     {
         return Analysis::data($message);
+    }
+
+    public static function audit(array $point): void
+    {
+        Handler::audit($point);
     }
 
     public static function stringR(mixed $data = null): string
@@ -425,10 +414,11 @@ class Debug
     {
         if (self::isEnabled()) {
             $args = func_get_args();
-            count($args) > 1 ? die(self::stringR($args)) : die(self::stringR($data));
+            count($args) > 1 ? die(Analysis::stringR($args)) : die(Analysis::stringR($data));
         }
     }
 
+    #TODO delegate trace/caller features to \Saf\Util\Debug\Trace
     /**
      * generates a stack trace, if wrapped is set and >0 that many levels are trimmed
      * from the top of the stack.
@@ -443,163 +433,54 @@ class Debug
             throw new \Exception('debug');
         } catch (\Exception $e) {
             $trace = $e->getTrace();
-            while($wrapped-- > 0) { //#NOTE removes this(debug) object/method from the stack
+            while($wrapped-- > 0) { #NOTE removes this(debug) object/method from the stack
                 array_shift($trace);
             }
             return $trace;
         }
     }
 
+    public static function getTraceString(bool|int $wrapped = true): string
+    {
+        is_bool($wrapped) && ($wrapped = $wrapped ? 1 : 0);
+        try {
+            throw new \Exception('debug');
+        } catch (\Exception $e) {
+            $trace = explode(PHP_EOL, $e->getTraceAsString());
+            while(0 < $wrapped--) { #NOTE removes this(debug) object/method from the stack
+                array_shift($trace);
+            }
+            foreach($trace as $number => $line) {
+                $parts = explode(' ', $line, 2);
+                $parts[0] = '#' . (string)((int)substr($parts[0],1) - 1);
+                $trace[$number] = implode(' ', $parts);
+            }
+            return implode(PHP_EOL, $trace);
+        }
+    }
+
     protected static function currentTraceString(?string $behavior = self::TRACE_SHALLOW): string
     {
         $e = new \Exception('debug');
-        $rendered = self::renderTrace(array_slice($e->getTrace(),1), $behavior);
+        $rendered = Analysis::renderTrace(array_slice($e->getTrace(),1), $behavior);
         return $rendered;
     }
 
-    public static function renderTrace(array|\Throwable $trace, ?string $behavior = self::TRACE_DIGEST): string
+    public static function caller(?bool $fullTrace = false): string
     {
-        if (is_a($trace, \Throwable::class)) {
-            $trace = $trace->getTrace();
-        }
-        $standardEol = "\n";
-        $out = '';
-        $count = count($trace);
-        foreach($trace as $index => $point) {
-            if (
-                array_keys($point) != ['file', 'line', 'function', 'class', 'type', 'args']
-                && array_keys($point) != ['file', 'line', 'args', 'function']
-                && array_keys($point) != ['file', 'line', 'function', 'args']
-                && array_keys($point) != ['function', 'class', 'type', 'args']
-            ) {
-                //die(self::stringR($index, array_keys($point)));
-                \Saf\Audit::add(
-                    'saf_debug',
-                    'unmatched renderTrace signiture',
-                    [
-                        'keys' => array_keys($point)
-                    ]
-                );
-            }
-            $line =
-                key_exists('file', $point)
-                ? "{$point['file']}({$point['line']})"
-                : '';
-            $context = key_exists('function', $point)
-                ? (
-                    ": "
-                    . (
-                        key_exists('class', $point)
-                        ? "{$point['class']}{$point['type']}"
-                        : ''
-                    ) . "{$point['function']}"
-                ) : '';
-            $argCount = key_exists('args', $point) && $point['args'] ? count($point['args']) : 0;
-            $env =
-                key_exists('args', $point) && $behavior != self::TRACE_BARE
-                ? ('(' . self::renderArgList($point['args'], $behavior) . ')')
-                : ($argCount ? "(...[{$argCount}])" : '()');
-            $out .= "#{$index} {$line}{$context}{$env}{$standardEol}";
-        }
-        $out .= "#{$count} {main} {$standardEol}";
-        return $out;
+        $trace = self::getTraceString(2);
+        $subStart = strpos($trace, ' ');
+        return $fullTrace ? $trace : substr($trace, $subStart, strpos($trace, PHP_EOL) - $subStart);
     }
 
-    public static function renderArgList(array $args, $behavior = self::TRACE_DIGEST): string
+    public static function here(?string $level = self::TRACE_BARE): string
     {
-        $out = '';
-        $prefix = '';
-        foreach($args as $argKey => $argValue) {
-            $representation = self::renderArg($argValue, $behavior);
-            $out .= "{$prefix}{$representation}";
-            $prefix = ', ';
-        }
-        return $out;
+        return self::there(self::getTrace(2), $level);
     }
 
-    public static function escapeTraceStrings(string $s, ?int $max = 512): string
+    public static function there(\Error|\Exception $e, string $level = self::TRACE_BARE): string
     {
-        $main = substr($s, 0, $max);
-        $suffix = strlen($s) > $max ? '[...]' : '';
-        return"'{$main}'{$suffix}";
-    }
-
-    public static function escapeTraceArray(array $a, null|int|string $behavior = 16): string
-    {
-        $out = '';
-        $prefix = '';
-        $count = 1;
-        $max = is_int($behavior) ? $behavior : 16;
-        foreach($a as $index => $value) {
-            if (is_string($index)) {
-                $index = "'{$index}'";
-            }
-            $rendered = self::renderArg($value, is_int($behavior) ? self::TRACE_DIGEST : $behavior);
-            $out .= "{$prefix}{$index} => {$rendered}";
-            $prefix = ', ';
-            $count++;
-            if ($max >= 0 && $count > $max) {
-                $out .= "{$prefix}...";
-                break;
-            }
-        }
-        return $out;
-    }
-
-    public static function renderArg(mixed $value, string $behavior = self::TRACE_DIGEST): string
-    {
-        $type = gettype($value);
-        $representation = '';
-        switch($type) {
-            case 'integer':
-            case 'boolean':
-                $type = $type == 'integer' ? 'int' : 'bool';
-                $representation = (string)$value;
-                return "({$type}){$representation}";
-            case 'float':
-                $representation = (string)$value;
-                return "({$type}){$representation}";
-            case 'string':
-                $type = "{$type}/" . strlen($value);
-                $escValue = self::escapeTraceStrings($value);
-                return "({$type})$escValue";
-            case 'array':
-                $type = "{$type}/" . count($value); //#TODO is numeric/subtype
-                $escValue = $behavior == self::TRACE_BARE ? '' : self::escapeTraceArray($value);
-                return "($type)[{$escValue}]";
-            case 'object':
-                return $value::class;
-            case 'resource':
-            case 'callable':
-               return "[{$type}]";
-            case 'NULL':
-                return 'null';
-            default:
-                return "({$type})[xxx]";
-        }
-    }
-
-    public static function dieSafe($message = '')
-    {
-        Handler::dieSafe($message);
-    }
-
-    public static function halt(): void
-    {
-//        try{
-        $standardEol = self::EOL;
-        $data = func_get_args();
-        if (self::isEnabled()) {
-            print("halting with trace:{$standardEol}");
-            if ($data) {
-                print(self::renderArgList($data, self::TRACE_DEEP) . $standardEol);
-            }
-            print(self::currentTraceString(self::$haltRenderLevel, self::$haltRenderLevel));
-            die;
-        }
-//        } catch (\Exception | \Error $e) {
-//            print(self::stringR(__FILE__,__LINE__,$e->getMessage(), $e->getTraceAsString()));
-//        }
+        return Analysis::renderTrace($e->getTrace(), $level);
     }
 
     public static function setHaltLevel(string $level): void
@@ -607,7 +488,21 @@ class Debug
         self::$haltRenderLevel = $level;
     }
 
-    public static function vent()
+    public static function halt(): void
+    {
+        if (self::isEnabled()) {
+            $standardEol = self::EOL;
+            $data = func_get_args();
+            print("halting with trace:{$standardEol}");
+            if ($data) {
+                print(Analysis::renderArgList($data, self::TRACE_DEEP) . $standardEol);
+            }
+            print(self::currentTraceString(self::$haltRenderLevel));
+            die;
+        }
+    }
+
+    public static function vent(): never
     {
         if(self::isEnabled()) {
             $vent = require(__DIR__ . '/kickstart/debug.vent.php');
@@ -619,30 +514,18 @@ class Debug
         }
     }
 
+    public static function dieSafe($message = ''): void
+    {
+        Handler::dieSafe($message);
+    }
+
+    /**
+     * disable Handler shutdown and use dieSafe instead.
+     */
     public static function registerDieSafe()
     {
         Handler::terminates(false);
         register_shutdown_function('Debug::dieSafe');
-    }
-
-    public static function enabledDisplayMode()
-    {
-        return self::$enabledDisplayMode;
-    }
-
-    public static function disabledDisplayMode()
-    {
-        return self::$disabledDisplayMode;
-    }
-
-    public static function enabledErrorLevel()
-    {
-        return self::$enabledErrorLevel;
-    }
-
-    public static function disabledErrorLevel()
-    {
-        return self::$disabledErrorLevel;
     }
 
 }

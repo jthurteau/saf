@@ -16,6 +16,7 @@ use Saf\Keys;
 use Saf\Auto;
 use Saf\Util\UrlRewrite;
 use Saf\Util\Time;
+use Saf\Auth\Access;
 
 trait RequestHandlerCommon {
 
@@ -39,37 +40,37 @@ trait RequestHandlerCommon {
         //$accessList = Hash::deepMerge($this->accessList,$globalAccess);
         $keys = $user ? $user->getDetail('keys') : [];
         $roles = $user ? $user->getRoles() : [];
-        if ($this->matchRoute($resource, 'open')) {
-            return 'open-access';
+        if ($this->matchRoute($resource, Access::KEY_OPEN)) {
+            return Access::TYPE_OPEN;
         }
         if (
-            $this->matchRoute($resource, 'any-user')
+            $this->matchRoute($resource, Access::KEY_ANY_USER)
         ) {
             if ($user?->getIdentity()) {
-                return 'authorized-access';
+                return Access::TYPE_AUTH;
             }
         }
         $userName = $user?->getIdentity() ?: 'none';
-        if ($user && $this->matchRoute($resource, "user-{$userName}")) {
-            return 'authorized-access';
+        if ($user && $this->matchRoute($resource, Access::KEY_USER . "-{$userName}")) {
+            return Access::TYPE_AUTH;
         }
         $validKeys = Keys::validKeys($keys);
         if (
             count($validKeys) > 0
-            && $this->matchRoute($resource, 'key')
+            && $this->matchRoute($resource, Access::KEY_KEY)
         ) {
-            return 'key-access';
+            return Access::TYPE_KEY;
         }
         foreach($validKeys as $keyName=> $key) {
             if ($this->matchRoute($resource, $keyName)) {
                 $serviceName = substr($keyName, 4);
-                return "{$serviceName}-key-access";
+                return "{$serviceName}-" . Access::TYPE_KEY;
             }
         }
         foreach($roles as $role) {
-            $roleName = "{$role}-role";
+            $roleName = "{$role}-" . Access::KEY_ROLE;
             if ($this->matchRoute($resource, $roleName)) {
-                return "{$roleName}-role-access";
+                return "{$roleName}-" . Access::TYPE_ROLE;
             }
         }
         return false;
@@ -78,49 +79,12 @@ trait RequestHandlerCommon {
     /**
      * @param $resource
      * @param $user
-     * @return array|string
+     * @return string
      * deprecate in favor of accessOptions
      */
-    protected function accessRecommendation($resource, $user = null)
+    protected function accessRecommendation($resource, $user = null): ?string
     {
-        $recommendation = [];
-        //#TODO patch in with configed routes
-        //$accessList = Hash::deepMerge($this->accessList,$globalAccess);
-        $list = $this->accessList;
-        $keys = $user ? $user->getDetail('keys') : [];
-        $roles = $user ? $user->getRoles() : [];
-        if ($this->matchRoute($resource, 'open')) {
-            return 'open-access';
-        }
-        if ($this->matchRoute($resource, 'any-user')) {
-            if ($user->getIdentity()) {
-                return 'authorized-access';
-            }
-            $recommendation = 'login-required';
-        }
-        $anyKeyAccess = $this->matchRoute($resource, 'key');
-        if (count($keys) > 0 && $anyKeyAccess) {
-            return 'key-access';
-        } elseif ($anyKeyAccess && !$recommendation) {
-            $recommendation = 'key-required';
-        }
-        foreach($list as $criteria => $toss){
-            $isKeyAccess = false;
-            $isUserAccess = false;
-            $isRoleAccess = false;
-            $possibleRecommendation =
-                $isKeyAccess
-                ? 'key-required'
-                : (
-                    $isRoleAccess || $isUserAccess
-                    ? 'login-required'
-                    : false
-                );
-            if (!$recommendation && $recommendation) {
-
-            }
-        }
-        return $recommendation;
+        return array_shift($this->accessOptions($resource, $user));
     }
 
     protected function accessOptions($resource, $user = null): array
@@ -132,35 +96,35 @@ trait RequestHandlerCommon {
         $keys = $user ? $user->getDetail('keys') : [];
         $roles = $user ? $user->getRoles() : [];
         if ($this->matchRoute($resource, 'open')) {
-            return ['open-access'];
+            return [Access::TYPE_OPEN];
         }
-        if ($this->matchRoute($resource, 'any-user')) {
+        if ($this->matchRoute($resource, Access::KEY_ANY_USER)) {
             if ($user->getIdentity()) {
-                return ['authorized-access'];
+                return [Access::TYPE_AUTH];
             }
-            $recommendation[] = 'login-required';
+            $recommendation[] = Access::TYPE_LOGIN;
         }
-        $anyKeyAccess = $this->matchRoute($resource, 'key');
+        $anyKeyAccess = $this->matchRoute($resource, Access::KEY_KEY);
         if (count($keys) > 0 && $anyKeyAccess) {
-            return ['key-access'];
+            return [Access::TYPE_KEY];
         } elseif ($anyKeyAccess) {
-            $recommendation[] = 'key-required';
+            $recommendation[] = Access::TYPE_LOCK;
         }
         foreach($list as $criteria => $toss){
-            $isKeyAccess =
-                str_ends_with($criteria, '-key')
+            $isKeyAccess = 
+                Access::is($criteria, Access::KEY_KEY)
                 && $this->matchRoute($resource, $criteria);
             $isUserAccess =
-                str_ends_with($criteria, '-user')
+                Access::is($criteria, Access::KEY_USER)
                 && $this->matchRoute($resource, $criteria);
             $isRoleAccess =
-                str_ends_with($criteria, '-role')
+                Access::is($criteria,Access::KEY_ROLE)
                 && $this->matchRoute($resource, $criteria);
 
-            $isKeyAccess && !in_array('key-required', $recommendation)
-                && ($recommendation[] = 'key-required');
-            ($isUserAccess || $isRoleAccess) && !in_array('login-required', $recommendation)
-                && ($recommendation[] = 'login-required');
+            $isKeyAccess && !in_array(Access::TYPE_LOCK, $recommendation)
+                && ($recommendation[] = Access::TYPE_LOCK);
+            ($isUserAccess || $isRoleAccess) && !in_array(Access::TYPE_LOGIN, $recommendation)
+                && ($recommendation[] = ($user->getIdentity() ? Access::TYPE_DENIED : Access::TYPE_LOGIN));
             //#TODO add an optional scoping param to allowed and return X-user-access, X-role-access, X-key-access
         }
         return $recommendation;

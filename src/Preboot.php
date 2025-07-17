@@ -128,9 +128,9 @@ class Preboot
                     self::defaultAutoloader($instance, $options);
                     break;
             default:
-                $internalPluginPath = __DIR__ . '/Utils/Preboot/' . Auto::classNameToPath($step) . '.php';
+                $internalPluginPath = __DIR__ . '/Util/Preboot/' . Auto::classNameToPath($step) . '.php';
                 if (file_exists($internalPluginPath)) {
-                    $pluginClass = "\\Saf\\Utils\\Preboot\\{$step}";
+                    $pluginClass = "\\Saf\\Util\\Preboot\\{$step}";
                     $pluginClass::init($options);
                 }
         }

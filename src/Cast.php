@@ -11,9 +11,9 @@
 
 namespace Saf;
 
-use Saf\Utils\Kickstart\Truthy;
+use Saf\Util\Kickstart\Truthy;
 
-require_once(__DIR__.'/Utils/Filter/Truthy.php');
+require_once(__DIR__.'/Util/Filter/Truthy.php');
 
 //#TODO #1.0.0 update function header docs
 class Cast

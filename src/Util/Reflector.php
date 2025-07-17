@@ -8,11 +8,10 @@
  * Utility class for reflection
  */
 
-namespace Saf\Utils;
+namespace Saf\Util;
 
 use Saf\Hash;
-use Saf\Utils\Reflector;
-use Saf\Utils\Debug\Mute;
+use Saf\Util\Debug\Mute;
 use Saf\Debug;
 
 class Reflector //#TODO #2.X.0 deprecate in favor of a more bare-bones view templating implementation

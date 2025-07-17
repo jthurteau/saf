@@ -13,7 +13,7 @@ namespace Saf\Auth;
 use Psr\Container\ContainerInterface;
 use Saf\Psr\Container;
 use Saf\Hash;
-use Saf\Utils\Filter\Truthy;
+use Saf\Util\Filter\Truthy;
 
 class Roles
 {

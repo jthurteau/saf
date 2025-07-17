@@ -8,9 +8,9 @@
  * Monitoring Plug-in for Saf\Preboot
  */
 
-namespace Saf\Utils\Preboot;
+namespace Saf\Util\Preboot;
 
-use Saf\Utils\Debug\Ui;
+use Saf\Util\Debug\Ui;
 
 class Monitor 
 {

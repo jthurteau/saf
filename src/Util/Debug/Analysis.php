@@ -8,11 +8,11 @@
  * Introspection Utility for Saf\Debug
  */
 
-namespace Saf\Utils\Debug;
+namespace Saf\Util\Debug;
 
 use Saf\Debug;
 
-class Analysis 
+class Analysis //#TODO implement as trait?
 {
 
     public const int DEFAULT_MEMORY_LIMIT = 1000000; // 1M
@@ -119,5 +119,111 @@ class Analysis
             $size += strlen($string);
         }
         return $size;
+    }
+
+    public static function escapeTraceStrings(string $s, ?int $max = 512): string
+    {
+        $main = substr($s, 0, $max);
+        $suffix = strlen($s) > $max ? '[...]' : '';
+        return"'{$main}'{$suffix}";
+    }
+
+    public static function escapeTraceArray(array $a, null|int|string $behavior = 16): string
+    {
+        $out = '';
+        $prefix = '';
+        $count = 1;
+        $max = is_int($behavior) ? $behavior : 16;
+        foreach($a as $index => $value) {
+            if (is_string($index)) {
+                $index = "'{$index}'";
+            }
+            $rendered = self::renderArg($value, is_int($behavior) ? Debug::TRACE_DIGEST : $behavior);
+            $out .= "{$prefix}{$index} => {$rendered}";
+            $prefix = ', ';
+            $count++;
+            if ($max >= 0 && $count > $max) {
+                $out .= "{$prefix}...";
+                break;
+            }
+        }
+        return $out;
+    }
+
+    public static function renderTrace(array|\Throwable $trace, ?string $behavior = Debug::TRACE_DIGEST): string
+    {
+        if (is_a($trace, \Throwable::class)) {
+            $trace = $trace->getTrace();
+        }
+        $standardEol = "\n";
+        $out = '';
+        $count = count($trace);
+        foreach($trace as $index => $point) {
+            Debug::audit($point);
+            $line =
+                key_exists('file', $point)
+                ? "{$point['file']}({$point['line']})"
+                : '';
+            $context = 
+                key_exists('function', $point)
+                ? (
+                    ': '
+                    . (key_exists('class', $point) ? "{$point['class']}{$point['type']}" : '')
+                    . "{$point['function']}"
+                ) : '';
+            $argCount = key_exists('args', $point) && $point['args'] ? count($point['args']) : 0;
+            $env =
+                key_exists('args', $point) && $behavior != Debug::TRACE_BARE
+                ? ('(' . self::renderArgList($point['args'], $behavior) . ')')
+                : ($argCount ? "(...[{$argCount}])" : '()');
+            $out .= "#{$index} {$line}{$context}{$env}{$standardEol}";
+        }
+        $out .= "#{$count} {main} {$standardEol}";
+        return $out;
+    }
+
+    public static function renderArg(mixed $value, string $behavior = Debug::TRACE_DIGEST): string
+    {
+        $type = gettype($value);
+        $representation = '';
+        switch($type) {
+            case 'integer':
+            case 'boolean':
+                $type = $type == 'integer' ? 'int' : 'bool';
+                $representation = (string)$value;
+                return "({$type}){$representation}";
+            case 'float':
+                $representation = (string)$value;
+                return "({$type}){$representation}";
+            case 'string':
+                $type = "{$type}/" . strlen($value);
+                $escValue = self::escapeTraceStrings($value);
+                return "({$type})$escValue";
+            case 'array':
+                $type = "{$type}/" . count($value); //#TODO is numeric/subtype
+                $escValue = $behavior == Debug::TRACE_BARE ? '' : self::escapeTraceArray($value);
+                return "($type)[{$escValue}]";
+            case 'object':
+                return $value::class;
+            case 'resource':
+            case 'callable':
+               return "[{$type}]";
+            case 'NULL':
+                return 'null';
+            default:
+                return "({$type})[xxx]";
+        }
+    }
+
+    public static function renderArgList(array $args, $behavior = Debug::TRACE_DIGEST): string
+    {
+        $out = '';
+        $prefix = '';
+        foreach($args as $argKey => $argValue) {
+            $representation = self::renderArg($argValue, $behavior);
+            $out .= "{$prefix}{$representation}";
+            $prefix = ', ';
+        }
+        return $out;
     }
 }

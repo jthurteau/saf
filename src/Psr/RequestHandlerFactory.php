@@ -8,7 +8,7 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Mezzio\Template\TemplateRendererInterface;
 use Saf\Psr\Container;
-use Saf\Utils\Breadcrumb;
+use Saf\Util\Breadcrumb;
 
 class RequestHandlerFactory
 {

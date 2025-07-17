@@ -8,7 +8,7 @@
  * LibXML Plug-in for Saf\Preboot
  */
 
-namespace Saf\Utils\Preboot;
+namespace Saf\Util\Preboot;
 
 class LibXML 
 {

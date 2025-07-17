@@ -15,7 +15,7 @@ use Saf\Pdo;
 use Saf\Pdo\PropertyAccess;
 use Saf\Pdo\Exception as PdoException;
 use Saf\Exception\DbDuplicate;
-use Saf\Utils\Vault;
+use Saf\Util\Vault;
 
 class Db
 {

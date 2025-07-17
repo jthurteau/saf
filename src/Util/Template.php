@@ -10,7 +10,7 @@
 
 namespace Saf\Util;
 
-use Saf\Utils\Reflector;
+use Saf\Util\Reflector;
 
 class Template
 {

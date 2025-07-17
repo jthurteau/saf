@@ -8,12 +8,12 @@
  * Ui Utility for Saf\Debug
  */
 
-namespace Saf\Utils\Debug;
+namespace Saf\Util\Debug;
 
 use Saf\Debug;
 use Saf\Hash;
 use Saf\Util\Layout;
-//use Saf\Utils\Debug\Mute; #in namespace
+use Saf\Util\Debug\Mute;
 
 class Ui 
 {
@@ -22,27 +22,27 @@ class Ui
         'OTHER',
     ];
     
-    public const ICON_PROFILE_INFO = 'tachometer-alt';
-    public const ICON_DEBUG_INFO = 'bug';
-    public const ICON_EXPAND = '[B]';
+    public const string ICON_PROFILE_INFO = 'tachometer-alt';
+    public const string ICON_DEBUG_INFO = 'bug';
+    public const string ICON_EXPAND_TEXT = 'show stack trace';
 
-    public static $buffer = '';
+    protected static $buffer = '';
     protected static $notifyConsole = false;
     protected static $buffered = true;
     protected static $maxBufferSize = 1000000;
     protected static $bufferOverflow = false;
-    protected static $expandIcon = '<span class="debugExpand">'. self::ICON_EXPAND.'</span>';
+    protected static $expandIcon = '<span class="debugExpand">'.self::ICON_EXPAND_TEXT.'</span>';
     protected static $printedDebugExit = false;
     protected static $printedDebugEntry = false;
     protected static $printedDebugShutdown = false;
-    protected static $foundationMode = true;
+    protected static bool $foundationMode = true;
 
     public static function noop()
     {
         
     }
 
-    public static function out($level, $message, $trace = [])
+    public static function out(string $level, string $message, ?array $trace = null): void
     {
         $expandIcon = self::$expandIcon;
         $htmlLevel = self::htmlLevel($level);
@@ -53,7 +53,7 @@ class Ui
         self::goOut($output, $notify);
     }
 
-    public static function outData($level, $message, $trace)
+    public static function outData(string $level, mixed $message, ?array $trace = null): void
     {
         $expandIcon = self::$expandIcon;
         $htmlLevel = self::htmlLevel($level);
@@ -65,7 +65,7 @@ class Ui
         self::goOut($output, $notify);
     }
 
-    public static function outRaw($message, $preformated)
+    public static function outRaw(string $message, ?bool $preformated = true): void
     {
         $wrappedOutput = 
             ($preformated ? '<pre class="message">' : '') 
@@ -74,7 +74,7 @@ class Ui
         self::goOut($wrappedOutput, false);
     }
 
-    public static function outRawData($message, $preformated)
+    public static function outRawData(mixed $message,  ?bool $preformated = true): void
     {
         $output = Debug::introspectData($message);
         $wrappedOutput = 
@@ -94,7 +94,7 @@ class Ui
         self::$notifyConsole = self::$notifyConsole || $notifyConsole;
         if (self::$buffered) {
             if (strlen(self::$buffer) + strlen($output) > self::$maxBufferSize) {
-                self::$bufferOverflow = true; //#TODO #2.0.0 do something with the overflow indicator at render time. treat overflow as an int for count?
+                self::$bufferOverflow = true; //#TODO #2.0.0 treat overflow as an int for count?
             } else {
                 self::$buffer .= $output;
             }
@@ -127,7 +127,7 @@ class Ui
     }
 
     public static function paramSummary($args)
-    {//#TODO #2.0.0, pass to Anylasis?
+    {//#TODO #2.0.0, pass to Analysis?
         return '(args...)';
     }
 
@@ -148,6 +148,7 @@ class Ui
 
     public static function cleanBuffer()
     {
+        //print_r([__FILE__,__LINE__,'clean']);
         if (false) {
         //if (self::$_verbose && Layout::formatIsHtml()) {
             print('<!-- debug buffer cleared -->');
@@ -160,7 +161,8 @@ class Ui
     {
         $return = self::getBuffer();
         if ($force || Debug::isVerbose()) { //#TODO Debug::
-            print('<!-- debug buffer contents ' . strlen($return) . ' -->');
+            $warnings = self::$bufferOverflow ? ' #OVERFLOW' : '';
+            print('<!-- debug buffer contents ' . strlen($return) . "{$warnings} -->");
             print($return);
         }
         self::cleanBuffer();
@@ -236,7 +238,7 @@ class Ui
                 if (Mute::active()) {
                     foreach (Mute::list() as $trace) {
                         //$icon = ' <span class="debugExpand"> ' . Layout::getIcon(self::LAYOUT_MORE_INFO_ICON) . '</span>';
-                        $icon = '<span class="debugExpand">[B]</span>';
+                        $icon = '<span class="debugExpand"><span class="icon-placeholder">'.self::ICON_EXPAND_TEXT.'</span></span>';
                         print("\n<div class=\"debugStatus\"><pre>Data:{$icon}<br/>\n");
                         print(htmlentities($trace));
                         print('Unclosed Mute');
@@ -262,16 +264,17 @@ class Ui
 
     public static function printDebugReveal()
     {
+        //#CLEAN print_r([__FILE__,__LINE__,'hi9',self::$foundationMode]); die;
         if (self::$foundationMode) {
         //if (Layout::isReady()) {
             $icon = Layout::getIcon(self::ICON_DEBUG_INFO);
-            //$icon = '[b]';
             $accessible = ' class="accessibleHidden"';
         } else {
             $icon = '';
             $accessible = '';
         }
-        print('<div id="showDebug"><a href="#">'
+        print(
+            '<div id="showDebug"><a href="#debug">'
             . "{$icon}<span{$accessible}>Show Debug Information</span></a></div>"
         );
     }
@@ -281,13 +284,13 @@ class Ui
         if (self::$foundationMode) {
         //if (Layout::isReady()) {
             $icon = Layout::getIcon(self::ICON_PROFILE_INFO);
-            //$icon = '[p]';
             $accessible = ' class="accessibleHidden"';
         } else {
             $icon = '';
             $accessible = '';
         }
-        print('<div id="showProfile"><a href="#">'
+        print(
+            '<div id="showProfile"><a href="#profile">'
             . "{$icon}<span{$accessible}>Show Profiling Information</span></a></div>"
         );
     }
