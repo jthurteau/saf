@@ -66,7 +66,6 @@ class Handler
 
     public static function takeover()
     {
-        print_r([__FILE__,__LINE__,'foo2']); die;
         if (!self::$inControl) {
             self::$oldErrorHandler = set_error_handler(self::class.'::handle');
             self::$oldExceptionHandler = set_exception_handler('Debug::handleException');
@@ -192,7 +191,7 @@ class Handler
         $fatalErrorList = array(1, 4, 16, 64, 256);
         $fatal = in_array($errorNo, $fatalErrorList);
         $description =
-            array_key_exists($errorNo, $lookupTable)
+            key_exists($errorNo, $lookupTable)
                 ? $lookupTable[$errorNo]
                 : (is_numeric($errorNo) ? 'ERROR_NO_' . $errorNo : $errorNo);
         $at = $errorLine ? " on line {$errorLine}" : '';
@@ -201,9 +200,11 @@ class Handler
             $caughtBy = self::$_shuttingDown ? 'SHUTDOWN' : 'DEBUG';
             Status::set(Status::STATUS_500_ERROR);
             $e = new \Exception("{$description} {$in}");
-            Kickstart::exceptionDisplay($e, $caughtBy, $errorString);
+            //Kickstart::exceptionDisplay($e, $caughtBy, $errorString);
+            // no longer exists....
+            Debug::halt($e->getMesage(), $e->getTraceAsString());
         } else {
-            print_r([__FILE__,__LINE__, self::enabledErrorLevel,$errorNo, ]); die('#TODO');
+            //print_r([__FILE__,__LINE__, self::$enabledErrorLevel, $errorNo, ]); die('#TODO');
             $show = self::$enabledErrorLevel === -1 || $errorNo & self::$enabledErrorLevel;
             if ($show && !Mute::active()) {
                 $message = "<span class=\"phpErrorWhat\">{$description} - </span>"
@@ -216,14 +217,14 @@ class Handler
                         : 'error';
                 $level = htmlentities(ucfirst(strtolower($level)));
                 //$icon = $trace ? (' <span class="debugExpand"> ' . Layout::getIcon(self::LAYOUT_MORE_INFO_ICON) . '</span>') : '';
-                $icon = '<span class="debugExpand"><span class="icon-placeholder">'.Ui::ICON_EXPAND_TEXT.'</span></span>';
+                $icon = '<span class="debugExpand">'.Layout::getIcon(self::ICON_DEBUG_INFO).'<span class="icon-placeholder"> '.Ui::ICON_EXPAND_TEXT.'</span></span>';
                 $output = "{$message}{$icon}{$trace}\n";
                 self::goOut(
                     "<div class=\"debug{$level}\"><div class=\"phpError\">{$output}</div></div>"
                 );
             }
         }
-        return FALSE;
+        return false;
     }
 
     public static function audit(array $point): void

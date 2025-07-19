@@ -14,6 +14,7 @@ use Mezzio\Plates\PlatesRenderer;
 use Saf\Exception\Redirect;
 
 use Saf\Debug;
+use Saf\Util\Http\Status;
 
 class RedirectHandler implements RequestHandlerInterface
 {
@@ -32,7 +33,7 @@ class RedirectHandler implements RequestHandlerInterface
         if (!$location) {
             throw new \Exception('Unable to redirect, no location set');
         }
-        $status = $request->getAttribute('permanentRedirect') ? 301 : 303; //#TODO figure out when to use 302 for older agents
+        $status = $request->getAttribute('permanentRedirect') ? Status::STATUS_301_PERMANENT : Status::STATUS_303_OTHER; //#TODO figure out when to use 302 for older agents
         $htmlTemplate = $request->getAttribute('template', 'app::redirect');
         $useHtml = $request->getHeader('Accept');
         is_array($useHtml) && ($useHtml = array_pop($useHtml));

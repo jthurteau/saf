@@ -54,6 +54,20 @@ class Auto
     }
 
     /**
+     * 
+     */
+    public static function match(string $class, ?array $paths = []): ?string
+    {
+        try {
+            $files = Autoloader::match($class);
+            return $files ? $files[0] : null;
+        } catch (Error | Exception $e){
+            // #NOTE for now just silently chug on ... //print_r([__FILE__,__LINE__,'no go']); die;
+        }
+        return null;
+    }
+
+    /**
      * @param string Fully qualified class name
      * @return string path for the internal $class in question
      */

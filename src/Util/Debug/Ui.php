@@ -31,7 +31,6 @@ class Ui
     protected static $buffered = true;
     protected static $maxBufferSize = 1000000;
     protected static $bufferOverflow = false;
-    protected static $expandIcon = '<span class="debugExpand">'.self::ICON_EXPAND_TEXT.'</span>';
     protected static $printedDebugExit = false;
     protected static $printedDebugEntry = false;
     protected static $printedDebugShutdown = false;
@@ -44,7 +43,7 @@ class Ui
 
     public static function out(string $level, string $message, ?array $trace = null): void
     {
-        $expandIcon = self::$expandIcon;
+        $expandIcon = self::expandIcon();
         $htmlLevel = self::htmlLevel($level);
         $htmlTrace = self::htmlTrace($trace);
         $message = htmlentities($message);
@@ -55,7 +54,7 @@ class Ui
 
     public static function outData(string $level, mixed $message, ?array $trace = null): void
     {
-        $expandIcon = self::$expandIcon;
+        $expandIcon = self::expandIcon();
         $htmlLevel = self::htmlLevel($level);
         $htmlTrace = self::htmlTrace($trace);
         $output = "<div class=\"debug{$htmlLevel}\"><p>Data:{$expandIcon}</p>{$htmlTrace}<pre class=\"data\">";
@@ -101,6 +100,15 @@ class Ui
         } else {
             print($output);
         }
+    }
+
+    public static function expandIcon(): string
+    {
+        return 
+            '<span class="debugExpand"> '
+            . Layout::getIcon(self::ICON_DEBUG_INFO)
+            . '<span class="icon-placeholder">'
+            . self::ICON_EXPAND_TEXT.'</span></span>';
     }
 
     public static function htmlTrace($trace)
@@ -237,8 +245,7 @@ class Ui
             if (Debug::isVerbose()) {
                 if (Mute::active()) {
                     foreach (Mute::list() as $trace) {
-                        //$icon = ' <span class="debugExpand"> ' . Layout::getIcon(self::LAYOUT_MORE_INFO_ICON) . '</span>';
-                        $icon = '<span class="debugExpand"><span class="icon-placeholder">'.self::ICON_EXPAND_TEXT.'</span></span>';
+                        $icon = self::expandIcon();
                         print("\n<div class=\"debugStatus\"><pre>Data:{$icon}<br/>\n");
                         print(htmlentities($trace));
                         print('Unclosed Mute');
@@ -261,7 +268,7 @@ class Ui
     {
         print('<span id="debugTop"></span>');
     }
-
+    
     public static function printDebugReveal()
     {
         //#CLEAN print_r([__FILE__,__LINE__,'hi9',self::$foundationMode]); die;

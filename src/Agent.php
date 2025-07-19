@@ -249,21 +249,6 @@ class Agent implements \ArrayAccess {
     protected static function initMeditation()
     {
         return __DIR__ . '/kickstart/views/meditation.view.php';
-        // $active = self::
-        // $installPath = defined('INSTALL_PATH') ? INSTALL_PATH : '.'; #TODO this seems old
-        // $applicationPath = 
-        //     defined('APPLICATION_PATH') 
-        //         ? APPLICATION_PATH 
-        //         : ($installPath . "/application");
-        // $possibilities = [
-        //     "{$installPath}/error.php"
-        // ];
-        // foreach($possibilities as $path){
-        //     if (file_exists($path)) {
-        //         return $path;
-        //     }
-        // }
-        // return realpath("{$applicationPath}/views/scripts/exception.php");
     }
 
     /**

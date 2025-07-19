@@ -129,6 +129,21 @@ class Debug
     public const string SESSION_MUTE_SWITCH = 'silent'.self::SESSION_SWITCH;
 
     /**
+     * output format: plain text
+     */
+    public const string FORMAT_TEXT = 'text';
+    
+    /**
+     * output format: HTML
+     */
+    public const string FORMAT_HTML = 'html';
+    
+    /**
+     * output format: JSON
+     */
+    public const string FORMAT_JSON = 'json';
+
+    /**
      * current debugging mode
      */
 
@@ -143,6 +158,11 @@ class Debug
      * trace formatting rules to use on halt
      */
     protected static $haltRenderLevel = self::TRACE_DIGEST;
+
+    /**
+     * trace formatting rules to use on halt
+     */
+    protected static $haltRenderFormat = self::FORMAT_TEXT;
 
     /**
      * Initilizes debugging
@@ -486,6 +506,11 @@ class Debug
     public static function setHaltLevel(string $level): void
     {
         self::$haltRenderLevel = $level;
+    }
+
+    public static function setHaltFormat(string $format): void
+    {
+        self::$haltRenderFormat = $format;
     }
 
     public static function halt(): void

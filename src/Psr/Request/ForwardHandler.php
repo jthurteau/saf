@@ -34,19 +34,14 @@ class ForwardHandler implements RequestHandlerInterface
     public static function reroute(Forward $f, ServerRequestInterface $request) : ResponseInterface
     {
         $forwardRoute = $f->getMessage();
-        $originalRequest = 
-            $f->hasRequest()
-            ? $f->getRequest()
-            : $request;
+        $originalRequest = $f->hasRequest() ? $f->getRequest() : $request;
         $forwardedRequest = self::routeStack($forwardRoute, $originalRequest);
         return (new ForwardHandler($forwardRoute))->handle($forwardedRequest);
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        if (self::$forwardCount > self::$maxForwards) {
-            throw new \Exception('Maximum internal forwards exceeded');
-        } //#TODO PHP8 allows inlie throw
+        self::$forwardCount > self::$maxForwards && throw new \Exception('Maximum internal forwards exceeded');
         try{
             $match = self::$router->match($request);
             if ($match->isSuccess()) {

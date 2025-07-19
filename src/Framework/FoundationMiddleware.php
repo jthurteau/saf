@@ -19,6 +19,7 @@ use Saf\Agent;
 #use Saf\Framework\AutoPipe;
 use Saf\Psr\Request\RedirectHandler;
 use Saf\Psr\Request\ForwardHandler;
+use Saf\Psr\Request\ExceptionHandler;
 use Saf\Psr\Container;
 use Saf\Exception\Redirect;
 use Saf\Exception\Forward;
@@ -56,6 +57,13 @@ class FoundationMiddleware implements MiddlewareInterface
                 ->withAttribute('permanentRedirect', $r->isPermanent())
                 ->withAttribute('redirectMethod', $r->isAutomatic() ? Redirect::METHOD_HEADER : Redirect::METHOD_BODY);
             return (new RedirectHandler(self::$renderer))->handle($redirected);
+        } catch (\Error | \Exception $e) {
+            \Saf\Util\Profile::ping('foundation pipeline caught throwable: ' . $e::class . ' ' . $e->getMessage());
+            if (true) {
+                $caught = $request->withAttribute('throwable', $e);
+                return (new ExceptionHandler(self::$renderer))->handle($caught);
+            }
+            throw($e);
         }
     }
 

@@ -44,19 +44,19 @@ class Mezzio extends Manager{
         if (false) {
             #TODO handle $options autoloading?
         } else {
-            if (!array_key_exists('applicationRoot', $options)) {
+            if (!key_exists('applicationRoot', $options)) {
                $options['applicationRoot'] = '/var/www/application'; //#NOTE this is a copy of $options
             }
 
-            if (!array_key_exists('libraryPath', $options)) {
+            if (!key_exists('libraryPath', $options)) {
                 $options['libraryPath'] = "{$options['applicationRoot']}/library"; //#NOTE this is a copy of $options
             }
 
-            if (!array_key_exists('applicationPath', $options)) {
+            if (!key_exists('applicationPath', $options)) {
                $options['applicationPath'] = "{$installPath}/src/App"; //#NOTE this is a copy of $options
             }
             defined('Saf\APPLICATION_PATH') || define('Saf\APPLICATION_PATH', $options['applicationPath']);
-            if (!array_key_exists('controllerPath', $options)) {
+            if (!key_exists('controllerPath', $options)) {
                 $options['controllerPath'] = "{$installPath}/App/controller"; //#NOTE this is a copy of $options
             }
             $options['psrAutoloading'] = true; //#NOTE Mezzio really doesn't like non-psr autoloaders

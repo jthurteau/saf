@@ -106,7 +106,7 @@ class Kickstart
             $agent = new Agent($instance, $options);
             $modeClass = Environment::instanceOption($instance, self::OPTION_MANAGER);
             if ($mode != Agent::MODE_NONE && !class_exists($modeClass, false)) {
-                $mode = array_key_exists($instance, self::$laced) ? self::$laced[$instance] : 'undefined';
+                $mode = key_exists($instance, self::$laced) ? self::$laced[$instance] : 'undefined';
                 throw new \Exception("Requested kickstart mode ({$mode}:{$modeClass}) is not loaded.");
             }
             return $agent->run($modeClass);
