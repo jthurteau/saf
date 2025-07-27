@@ -115,12 +115,12 @@ class Agent implements \ArrayAccess {
         $this->environment = &$environment;
     }
 
-    public function run($manager = null)
+    public function run(?string $managerClass = null)
     {
         $options = self::duplicate($this->environment); //#NOTE this needs work
         $options['agentId'] = $this->id;
-        $this->prep($options);
-        if (is_null($manager)) {
+        $this->prep($managerClass, $options);
+        if (is_null($managerClass)) {
             $modeMain = $this['mainScript'] ?: 'main';
             $installPath = $this['installPath'] ?: '.';
             $mainScript = 
@@ -137,7 +137,7 @@ class Agent implements \ArrayAccess {
             $params = key_exists('mainParams', $options) ? $options['mainParams'] : [];
             return is_callable($main) ? $main(...$params) : $main;
         } else {
-            return $manager::run($this->id, $options);
+            return $managerClass::run($this->id, $options);
         }
     }
 
@@ -319,31 +319,33 @@ class Agent implements \ArrayAccess {
         return $this->active;
     }
 
-    public function prep($options)
+    public function prep(?string $managerClass = null, null|array|ArrayAccess $options = [])
     {
-        $force = key_exists('forceDebug', $options) && $options['forceDebug'];
-        $enabled = key_exists('enableDebug', $options) && $options['enableDebug'];
-        $auto = (
-            key_exists('debug', $options)
-            || $enabled
-        );
-        if ($force || $auto) {
-            $liveOption = 
+        if (method_exists($managerClass, 'delegateDebug') && $managerClass::delegateDebug()) {
+            $force = key_exists('forceDebug', $options) && $options['forceDebug'];
+            $enabled = key_exists('enableDebug', $options) && $options['enableDebug'];
+            $auto = (
                 key_exists('debug', $options)
-                ? ( 
-                    is_array($options['debug']) && key_exists('mode', $options['debug']) 
-                    ? (string)$options['debug']['mode']
-                    : (
-                        is_array($options['debug']) 
-                        ? Debug::MODE_OFF 
-                        : (string)$options['debug']
-                    )
-                ) : ($enabled ? Debug::MODE_SILENT : Debug::MODE_DISABLE);
-            $debugMode = 
-                $force && !key_exists('debug', $options)
-                ? Debug::MODE_FORCE
-                : $liveOption; 
-            Debug::init($debugMode);
+                || $enabled
+            );
+            if ($force || $auto) {
+                $liveOption = 
+                    key_exists('debug', $options)
+                    ? ( 
+                        is_array($options['debug']) && key_exists('mode', $options['debug']) 
+                        ? (string)$options['debug']['mode']
+                        : (
+                            is_array($options['debug']) 
+                            ? Debug::MODE_OFF 
+                            : (string)$options['debug']
+                        )
+                    ) : ($enabled ? Debug::MODE_SILENT : Debug::MODE_DISABLE);
+                $debugMode = 
+                    $force && !key_exists('debug', $options)
+                    ? Debug::MODE_FORCE
+                    : $liveOption; 
+                Debug::init($debugMode);
+            }
         }
     }
 }

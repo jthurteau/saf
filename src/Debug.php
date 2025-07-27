@@ -251,6 +251,11 @@ class Debug
         }
     }
 
+    public static function registerHandlers($which = null): void
+    {
+        Handler::takeover();
+    }
+
     /**
      * @return bool session detected (session is ready and available)
      */
@@ -324,6 +329,7 @@ class Debug
      */
     protected static function updateNativeState(): void
     {
+        self::outData(['switching display_errors setting to:', Handler::getDisplayMode()]);
         ini_set('display_errors', Handler::getDisplayMode());
         error_reporting(Handler::getErrorLevel());
     }
@@ -520,12 +526,25 @@ class Debug
             $data = func_get_args();
             print("halting with trace:{$standardEol}");
             if ($data) {
-                print(Analysis::renderArgList($data, self::TRACE_DEEP) . $standardEol);
+                print ("[{$standardEol}");
+                foreach($data as $item) {
+                    $stringData =
+                        is_string($item)
+                        ? "  {$item}"
+                        : (
+                            is_object($item) && is_a($item, '\Throwable')
+                            ? Analysis::renderThrowable($item, 2)
+                            : Analysis::renderArg($item, self::TRACE_DEEP)
+                        );
+                    print("{$stringData}{$standardEol}");
+                }
+                print ("]{$standardEol}");
             }
             print(self::currentTraceString(self::$haltRenderLevel));
             die;
         }
     }
+
 
     public static function vent(): never
     {

@@ -44,7 +44,20 @@ class Status
     public const int STATUS_503_UNAVAILABLE = 503;
     public const int STATUS_504_GATEWAYTIMEOUT = 504;
 
-    public static function set(int|string $status){
+    protected static bool $sent = false;
+    protected static ?string $sentFrom = null;
+
+    public static function set(int|string $status): bool
+    {
+        if (self::$sent || headers_sent()) {
+            $f = '';
+            $l = '';
+            if (!self::$sentFrom && headers_sent($f,$l)) {
+                self::$sentFrom = "{$f}({$l})";
+                self::$sent = true;
+            }
+            return false;
+        }
         switch ($status){
             case 200:
             case '200':
@@ -175,11 +188,15 @@ class Status
                 self::header('504 Gateway Timeout');
                 break;
             default:
-                if (class_exists('\Saf\Debug', false)) {
+                if (class_exists('\Saf\Debug', false) && \Saf\Debug::isEnabled()) {
                     \Saf\Debug::out("Unrecognized HTTP Status Set Request: {$status}");
                 }
                 return false;
         }
+        self::$sentFrom = 
+            class_exists('\Saf\Debug', false)
+            ? \Saf\Debug::caller(true)
+            : '__UNSET__';
         return true;
     }
 
@@ -189,11 +206,17 @@ class Status
      */
     protected static function header(string $string): void
     {
+        self::$sent = true;
         if (defined('\Saf\APPLICATION_PROTOCOL') && 'commandline' == \Saf\APPLICATION_PROTOCOL) {
             print("Status: {$string}\r\n");
         } else {
-            header("{$_SERVER["SERVER_PROTOCOL"]} {$string}");
+            header("{$_SERVER['SERVER_PROTOCOL']} {$string}");
         }
+    }
+
+    public static function getSentTrace(): ?string
+    {
+        return self::$sent ? self::$sentFrom : null;
     }
 }
 

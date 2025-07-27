@@ -215,6 +215,27 @@ class Analysis //#TODO implement as trait?
         }
     }
 
+    public static function renderThrowable(\Throwable $e, ?int $pad = 0): string
+    {
+        $padding = str_pad('', $pad, ' ');
+        $innerPadding = '  ';
+        $out = "{$padding}(".PHP_EOL;
+        $code = $e->getCode() ? ":{$e->getCode()}" : '';
+        $class = get_class($e);
+        $out .= "{$padding}{$innerPadding}{$class}{$code}:{$e->getFile()}({$e->getLine()}):{$e->getMessage()}".PHP_EOL;
+        if ($e->getPrevious()) {
+            $out .= self::renderThrowable($e->getPrevious(), $pad + str_len($innerPadding)).PHP_EOL;
+        }
+        $out .= "{$padding}{$innerPadding}{".PHP_EOL;
+        $trace = explode(PHP_EOL, $e->getTraceAsString());
+        foreach($trace as $line) {
+            $out .= "{$padding}{$innerPadding}{$innerPadding}{$line}".PHP_EOL;
+        }
+        $out .= "{$padding}{$innerPadding}}".PHP_EOL;
+        $out .= "{$padding})";
+        return $out;
+    }
+
     public static function renderArgList(array $args, $behavior = Debug::TRACE_DIGEST): string
     {
         $out = '';

@@ -32,6 +32,10 @@ class FoundationMiddleware implements MiddlewareInterface
 
     public static function register($app, $container)
     {
+        $config = $container->get('config')?->getArrayCopy() ?: null;
+        if ($config && key_exists('localDevEnabled', $config) && $config['localDevEnabled']) {
+            \Saf\Debug::registerHandlers();
+        }
         self::$router = $container->get(\Mezzio\Router\RouterInterface::class);
         self::$baseRoute = AutoPipe::baseRoute($app, $container);
         self::$renderer = Container::getOptionalService($container, TemplateRendererInterface::class, null);

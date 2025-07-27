@@ -17,6 +17,7 @@ use Saf\Util\Breadcrumb;
 use Saf\Psr\RequestHandler;
 use Saf\Auth;
 use Saf\Util\Model\CalendarModel;
+use Saf\Util\Http\Status;
 
 class CalendarHandler extends RequestHandler implements RequestHandlerInterface
 {
@@ -35,11 +36,8 @@ class CalendarHandler extends RequestHandler implements RequestHandlerInterface
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         parent::prehandle($request);
-        $resourceStack = self::getResourceStack($request);
-        $function = 'index';
-
-        $status = 200;
-        $result = $this->handleFunction($function, $resourceStack, $request, $status);
+        $status = Status::STATUS_200_OK;
+        $result = $this->handleFunction(self::INDEX_FUNCTION, $request, $status);
         $result['calendarModel'] = $this->calendarModel ? new $this->calendarModel() : new CalendarModel();
         // $result += [
         //     'pageTitle' => 'Select a date',

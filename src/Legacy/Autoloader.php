@@ -319,15 +319,15 @@ class Autoloader
         return null;
     }
 
-    protected static function handle(string $className, $classFile = null, $errorMessage = null)
+    protected static function handle(string $className, ?string $classFile = '', $errorMessage = ''): bool
     {
-        $badFiles = array();
+        $badFiles = [];
         if (!is_null($classFile)) {
             try{
                 if (self::fileExistsInPath($classFile)) {
                     require_once($classFile);
                 }
-            } catch (\ParseError $e) {
+            } catch (\Error | \Exception $e) {
                 $badFiles[$classFile] = [
                     $className, 
                     'Parse Exception in ' . $e->getFile() . ' on line ' . $e->getLine() . ': ' 
@@ -339,7 +339,7 @@ class Autoloader
         if (self::$throws && !$classLoaded) {
             $classOut = self::$debuggingEnabled ? " {$className}" : '';
             $exceptionMessage = (
-                array_key_exists($classFile, $badFiles) 
+                key_exists($classFile, $badFiles) 
                     && $badFiles[$classFile][0]
                 ? "{$badFiles[$classFile][1]} "
                 : ''
@@ -349,6 +349,12 @@ class Autoloader
                 : str_replace('{$className}', $classOut, 'Failed to autoload class{$className}.')
             );
             throw new \Exception($exceptionMessage);
+        } elseif (!$classLoaded) {
+            $tried = $classFile ? " tried {$classFile}" : '';
+            $message = $errorMessage ? " {$errorMessage}" : '';
+            if (false) {
+                \Saf\Debug::outData(["legacy autoloader failed to load {$className}{$tried}{$errorMessage}", 'bad' => $badFiles]);
+            }
         }
         return $classLoaded;
     }

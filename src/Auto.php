@@ -61,7 +61,7 @@ class Auto
         try {
             $files = Autoloader::match($class);
             return $files ? $files[0] : null;
-        } catch (Error | Exception $e){
+        } catch (\Error | \Exception $e){
             // #NOTE for now just silently chug on ... //print_r([__FILE__,__LINE__,'no go']); die;
         }
         return null;
@@ -73,19 +73,6 @@ class Auto
      */
     public static function classPathLookup(string $class, ?string $externalPath = null, string $prefix = __NAMESPACE__)
     {
-        // $exitTrace = false;
-        // try{
-        //     $trace = Debug::getTrace();
-        //     print(Debug::stringR(
-        //         __FILE__,__LINE__,
-        //         $class,$externalPath,$prefix,
-        //         //$trace
-        //     ));
-        //     $exitTrace = true;
-        // } catch (\Error | \Exception $e) {
-        //     //$trace = $e->getMessage();
-        // }
-
         $parts = explode('\\', $class);
         $path = $externalPath ?: __DIR__;
         if (strrpos($path, '/') == (strlen($path) - 1)) {

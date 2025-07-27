@@ -62,12 +62,12 @@ abstract class RequestHandler implements RequestHandlerInterface
 
     }
 
-    protected function handleFunction($function, $resourceStack, $request, &$status)
+    protected function handleFunction($function, $request, &$status)
     {
         $method = "{$function}Process";
         try {
             if (Auto::validMethodName($method) && method_exists($this, $method)) {
-                return $this->$method($resourceStack, $request, $status);
+                return $this->$method(self::getResourceStack($request), $request, $status);
             } else {
                 $status = 400;
                 //die(\Saf\Debug::stringR(__FILE__,__LINE__,$function,get_class($this),$method,$request->getUri(),$request->getAttribute('resourceStack')));
@@ -89,23 +89,26 @@ abstract class RequestHandler implements RequestHandlerInterface
         }
     }
 
-    public function setBaseUri(string $base)
+    public function setBaseUri(string $base): RequestHandler
     {
         $this->baseUri = $base;
         Layout::setBaseUri($base);
+        return $this;
     }
 
-    public function setTemplate(TemplateRendererInterface $template)
+    public function setTemplate(TemplateRendererInterface $template): RequestHandler
     {
         $this->template = $template;
+        return $this;
     }
 
-    public function setTranslator(callable $translator)
+    public function setTranslator(callable $translator): RequestHandler
     {
         $this->dictionary = $translator;
+        return $this;
     }
 
-    public function translate(string $string) : string
+    public function translate(string $string): string
     {
         return is_callable($this->dictionary) ? ($this->dictionary)($string) : $string;
     }

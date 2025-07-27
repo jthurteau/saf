@@ -88,7 +88,7 @@ class Ui
         return htmlentities(ucfirst(strtolower($level)));
     }
 
-    protected static function goOut($output, $notifyConsole = true)
+    protected static function goOut(string $output, ?bool $notifyConsole = true): void
     {
         self::$notifyConsole = self::$notifyConsole || $notifyConsole;
         if (self::$buffered) {
@@ -274,7 +274,7 @@ class Ui
         //#CLEAN print_r([__FILE__,__LINE__,'hi9',self::$foundationMode]); die;
         if (self::$foundationMode) {
         //if (Layout::isReady()) {
-            $icon = Layout::getIcon(self::ICON_DEBUG_INFO);
+            $icon = self::getIcon();
             $accessible = ' class="accessibleHidden"';
         } else {
             $icon = '';
@@ -290,7 +290,7 @@ class Ui
     {
         if (self::$foundationMode) {
         //if (Layout::isReady()) {
-            $icon = Layout::getIcon(self::ICON_PROFILE_INFO);
+            $icon = self::getProfileIcon();
             $accessible = ' class="accessibleHidden"';
         } else {
             $icon = '';
@@ -311,6 +311,16 @@ class Ui
     public static function outDebugBlockEnd()
     {
         self::goOut('</div>');
+    }
+
+    public static function getIcon(): string
+    {
+        return Layout::getIcon(self::ICON_DEBUG_INFO);
+    }
+
+    public static function getProfileIcon(): string
+    {
+        return Layout::getIcon(self::ICON_PROFILE_INFO);
     }
 
 }

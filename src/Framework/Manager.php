@@ -35,6 +35,11 @@ abstract class Manager{
         return false;
     }
 
+    public static function delegateDebug(): bool
+    {
+        return false;
+    }
+
     /**
      * 
      */
