@@ -173,6 +173,7 @@ class Debug
         ?string $mode = self::MODE_SILENT, 
         null|string|array|Object $errorHandler = self::ERROR_MODE_EXTERNAL
     ): ?string {
+        //print_r([__FILE__,__LINE__, $mode, self::caller(true)]); die;
         Handler::init();
         self::sessionCheck();
         if ($errorHandler == self::ERROR_MODE_INTERNAL) {
@@ -226,6 +227,7 @@ class Debug
      */
     public static function switchMode(?string $mode = self::MODE_OFF): void
     {
+        //print_r([__FILE__,__LINE__,$mode, self::$mode, gettype(self::$mode),self::caller(true)]); die;
         is_null($mode) && ($mode = self::MODE_OFF);
         if (self::isForced() || !self::isAvailable()) {
             return;
@@ -274,7 +276,7 @@ class Debug
     {
         if (!self::$sessionReady && Session::ready()) {
             self::sessionCheck();
-            self::switchMode(self::$mode);
+            self::switchMode(self::$mode ?: self::MODE_DISABLE);
         }
     }
 
@@ -329,7 +331,7 @@ class Debug
      */
     protected static function updateNativeState(): void
     {
-        self::outData(['switching display_errors setting to:', Handler::getDisplayMode()]);
+        //self::outData(['switching display_errors setting to:', Handler::getDisplayMode()]);
         ini_set('display_errors', Handler::getDisplayMode());
         error_reporting(Handler::getErrorLevel());
     }
@@ -338,7 +340,8 @@ class Debug
      * updates Debugging behavior
      */
     public static function auto()
-    {//#TODO allow bindind to PSR7 on init?
+    {//#TODO allow binding to PSR7 on init?
+        //print_r([__FILE__,__LINE__, self::$mode, gettype(self::$mode),self::caller(true)]); die;
         $oldMode = self::$mode;
         if (key_exists(self::SESSION_OFF_SWITCH, $_GET)) {
             self::$mode = self::MODE_OFF;

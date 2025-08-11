@@ -73,10 +73,14 @@ class Kickstart
                 self::$laced[$instance] = $mode;
             }
         } catch (\Error | \Exception $e) {
-            Agent::meditate($e, self::MEDITATION_LEVEL, $instance); #TODO #2.0.0 staticMeditate
+            Agent::meditate($e, self::MEDITATION_LEVEL, isset($instance) ? $instance : $instanceIdentifier); #TODO #2.0.0 staticMeditate
             if (Environment::instanceOption($options, self::OPTION_THROW_MEDITATIONS)) {
-                #TODO #2.0.0 get the correct deilm
-                throw new \Exception("Failed to prepare {$instance}@{$mode} for kickstart", 0, Agent::getMeditation());
+                $delim = Agent::modeDelim();
+                $instanceLabel = 
+                    isset($instance)
+                    ? "{$instance}{$delim}{$mode}"
+                    : $instanceIdentifier;
+                throw new \Exception("Failed to prepare {$instanceLabel} for kickstart", 0, Agent::getMeditation());
             }
         }
         return Agent::instanceIdent($instance, self::$laced[$instance]);

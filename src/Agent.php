@@ -146,7 +146,7 @@ class Agent implements \ArrayAccess {
     /**
      * returns the instance name option key
      */
-    public static function instanceOption()
+    public static function instanceOption(): string
     {
         return self::OPTION_NAME;
     }
@@ -154,14 +154,14 @@ class Agent implements \ArrayAccess {
     /**
      * returns the kickstart mode option key
      */
-    public static function modeOption()
+    public static function modeOption(): string
     {
         return self::OPTION_MODE;
     }
     /**
      * returns the agent's signifier for running with no framework
      */
-    public static function noMode()
+    public static function noMode(): string
     {
         return self::MODE_NONE;
     }
@@ -173,7 +173,7 @@ class Agent implements \ArrayAccess {
      * @param array $options additional instance options to test compatability
      * @return string matching mode or auto-detect mode signifier
      */
-    public static function autoMode(?string $instance = null, array $options = [])
+    public static function autoMode(?string $instance = null, array|ArrayAccess $options = []): ?string
     {
         if (is_null($instance)) {
             return self::MODE_AUTODETECT;
@@ -189,7 +189,7 @@ class Agent implements \ArrayAccess {
     /**
      * returns the agent's chosen default instance
      */
-    public static function defaultInstance()
+    public static function defaultInstance(): string
     {
         return self::DEFAULT_INSTANCE;
     }
@@ -197,15 +197,15 @@ class Agent implements \ArrayAccess {
     /**
      * returns the agent mode delimiter
      */
-    public static function modeDelim()
+    public static function modeDelim(): string
     {
         return self::MODE_DELIM;
     }
 
     /**
-     * generates a unique id for passed meditation
+     * generates a unique id for an agent
      */
-    protected static function agentIdStrategy(string $instance)
+    protected static function agentIdStrategy(string $instance): string|int
     {
         return ++self::$idSeed;
     }
@@ -215,7 +215,7 @@ class Agent implements \ArrayAccess {
     /**
      * perform shutdown after a fatal meditation
      */
-    protected static function letGo()
+    protected static function letGo(): never
     {
         #TODO #2.0.0 decide how to implement.
         die();
@@ -224,7 +224,7 @@ class Agent implements \ArrayAccess {
     /**
      * generates a unique id for passed meditation
      */
-    protected static function meditationIdStrategy(\Throwable $e)
+    protected static function meditationIdStrategy(\Throwable $e): string|int
     {
         return ++self::$idSeed;
     }
@@ -232,13 +232,14 @@ class Agent implements \ArrayAccess {
     /**
      * registers a meditation level, marks it critical unless otherwise specified
      */
-    public static function regiterMeditation(string $level, bool $critical = true)
+    public static function regiterMeditation(string $level, bool $critical = true): Agent
     {
         if ($critical && !in_array($level, self::$criticalMeditations)) {
             self::$criticalMeditations[] = $level;
         } else {
             self::$profileMeditations[] = $level;
         }
+        return $this;
     }
 
     /*
@@ -246,7 +247,7 @@ class Agent implements \ArrayAccess {
     * scripts should handle Exception $e
     * @return string php script path (absolute or relative) 
     */
-    protected static function initMeditation()
+    protected static function initMeditation(): ?string
     {
         return __DIR__ . '/kickstart/views/meditation.view.php';
     }
@@ -255,9 +256,9 @@ class Agent implements \ArrayAccess {
      * returns the specified meditation, or the most recent one
      * @param mixed meditation id
      */
-    public static function getMeditation($id = null) : \Throwable
+    public static function getMeditation(null|string|int $id = null): \Throwable
     {
-        if (!is_null($id) && array_key_exists($id, self::$meditations)) {
+        if (!is_null($id) && key_exists($id, self::$meditations)) {
             return self::$meditations[$id];
         } elseif (is_null($id) && count(self::$meditations) > 0) {
             return self::$meditations[array_key_last(self::$meditations)];
@@ -268,7 +269,7 @@ class Agent implements \ArrayAccess {
     /**
      * returns the last reference id
      */
-    public static function last()
+    public static function last(): null|string|int
     {
         return 
             count(self::$references) > 0 
@@ -279,7 +280,7 @@ class Agent implements \ArrayAccess {
     /**
      * returns instance by reference id
      */
-    public static function lookup($id = null)
+    public static function lookup(null|string|int $id = null): ?Agent
     {
         if (is_null($id)) {
             $id = self::last();
@@ -293,7 +294,7 @@ class Agent implements \ArrayAccess {
     /**
      * 
      */
-    public function &env($shared = false)
+    public function &env(?bool $shared = false): mixed //#NOTE probably array|ArrayAccess
     {
         if ($shared) { //#NOTE ternarys break return by reference
             return $this->environment;
@@ -306,20 +307,24 @@ class Agent implements \ArrayAccess {
     /**
      * method for applicaion to acknowledge receiving agency from framework
      */
-    public function activate()
+    public function activate(): Agent
     {
         $this->active = true;
+        return $this;
     }
 
     /**
      * returns is this agent's application has accepted agency
      */
-    public function isActive()
+    public function isActive(): bool
     {
         return $this->active;
     }
 
-    public function prep(?string $managerClass = null, null|array|ArrayAccess $options = [])
+    /**
+     * setup any framework specific delegation
+     */
+    public function prep(?string $managerClass = null, null|array|ArrayAccess $options = []): Agent
     {
         if (method_exists($managerClass, 'delegateDebug') && $managerClass::delegateDebug()) {
             $force = key_exists('forceDebug', $options) && $options['forceDebug'];
@@ -347,5 +352,6 @@ class Agent implements \ArrayAccess {
                 Debug::init($debugMode);
             }
         }
+        return $this;
     }
 }

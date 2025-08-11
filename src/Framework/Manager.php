@@ -35,6 +35,9 @@ abstract class Manager{
         return false;
     }
 
+    /**
+     * returns whether the framework can initialize debug
+     */
     public static function delegateDebug(): bool
     {
         return false;

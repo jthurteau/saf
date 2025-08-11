@@ -131,4 +131,9 @@ class Mezzio extends Manager{
         };
     }
 
+    public static function delegateDebug(): bool
+    {
+        return true;
+    }
+
 }

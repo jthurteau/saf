@@ -58,10 +58,10 @@ trait Identity {
      * @param array $options #TODO #2.0.0
 	 * @return string
 	 */
-	public static function parseMode($mode, $options = [])
+	public static function parseMode(?string $mode, array|ArrayAccess $options = []): ?string
 	{
         $optionsMode = #TODO #2.0.0 handle non-supported modes
-            array_key_exists(self::modeOption(), $options)
+            key_exists(self::modeOption(), $options)
             ? $options[self::modeOption()]
             : self::autoMode();
 		if (is_string($mode)) {

@@ -10,9 +10,11 @@
 
 namespace Saf\Agent;
 
+use Saf\Agent;
 use Saf\Auto;
 use Saf\Agent\Meditation;
 
+require_once(dirname(__DIR__).'/Agent.php');
 require_once(dirname(__DIR__).'/Auto.php');
 require_once(__DIR__.'/Meditation.php');
 
@@ -29,7 +31,7 @@ trait Guru {
     /**
      * stack of stored (non-critical meditations)
      */
-    protected static $meditations = [];
+    protected static $meditations = []; //#NOTE allowed, but tricky, consider a refactor
 
     /**
      * squeltches (non-critical meditations)
@@ -68,7 +70,7 @@ trait Guru {
      * @param string $level error level
      * @param string|null $instance associated with the meditation (may be called before an Agent is instantiated)
      */
-    public static function meditate($e, $level = self::MEDITATION_NOTICE, $instance = null) #TODO add interface for detailed exceptions, $additionalError = '')
+    public static function meditate(\Throwable|string|array|ArrayAccess $e, ?string $level = Agent::MEDITATION_NOTICE, ?string $instance = null) #TODO add interface for detailed exceptions, $additionalError = '')
     {
         if (is_null(self::$meditationView)) {
             self::$meditationView = self::initMeditation();
