@@ -43,6 +43,7 @@ class Auth
     public const SIMULATED_AUTH_LOCK_KEY = 'simulated_login_lock';
     public const SIMULATED_AUTH_USER_KEY = 'simulated_user';
     public const string SIMULATED_AUTH_KEY_PARAM = 'simulated_login_key';
+    public const string NO_PLUGIN = 'None';
     //const MODE_SESSIONLESS = 2; //#TODO
     //const MODE_KEYONLY = 4; //#TOD
 
@@ -78,7 +79,7 @@ class Auth
             Keys::setServiceKeys($keys);
         }
         self::autodetect();
-        self::autoKey(); //#TODO move this before sutodetect and rename initKeys?
+        self::autoKey(); //#TODO move this before autodetect and rename initKeys?
         return $callback();
     }
 
@@ -147,16 +148,16 @@ class Auth
         self::$initialized = true;
     }
 
-    protected static function autokey(): void
+    protected static function autoKey(): void
     {
         $pluginAvailable =
             in_array('Key', self::$loadedPlugins)
             || in_array('\\Saf\\Auth\\Plugin\\Key', self::$loadedPlugins);
-        $keyPluginInactive = self::$activePlugin != self::getPlugin('Key');
+        $keyPluginInactive =  !is_null(self::$activePlugin) && self::$activePlugin != self::getPlugin('Key');
         self::$autoKey 
             && $pluginAvailable 
             && $keyPluginInactive 
-            && self::getPlugin('Key')->auth(false);
+            && self::getPlugin('Key')?->auth(false);
     }
 
     /**
@@ -244,7 +245,7 @@ class Auth
             try {
                 $plugin = self::getPlugin($pluginName);
                 self::$activePlugin = $plugin;
-                if($plugin->auth()) {
+                if($plugin?->auth()) {
                     return self::login($plugin->getProvidedUsername());
                 } else {
                     self::$activePlugin = null;
@@ -340,7 +341,7 @@ class Auth
         self::init();
         foreach(self::$loadedPlugins as $pluginName){
             $plugin = self::getPlugin($pluginName);
-            if($plugin->isLoggedIn()){
+            if($plugin?->isLoggedIn()){
                 return true;
             }
         }
@@ -373,17 +374,17 @@ class Auth
         }
         foreach($realms as $pluginName){
             $plugin = self::getPlugin($pluginName);
-            $plugin->logout();
+            $plugin?->logout();
         }
     }
 
-    private static function getPlugin($pluginName = null)
+    private static function getPlugin(?string $pluginName = null): ?Object
     {
         if (is_null($pluginName) || '' == $pluginName) {
             $pluginName = self::$defaultPlugins[0];
         } #TODO handle prepending \Saf\Auth\Plugin in case the class is added fully qualified
         $pluginClass =
-            array_key_exists($pluginName, self::$classMap)
+            key_exists($pluginName, self::$classMap)
             ? self::$classMap[$pluginName]
             : null;
         if ($pluginClass) {
@@ -398,40 +399,25 @@ class Auth
                 $plugin = new $pluginClass();
             }
             return $plugin;
-        } else {
-            $safeName = htmlentities($pluginName);
-            throw new \Exception("No such Plugin: {$safeName}");
-        }
+        } // else {
+        //     $safeName = htmlentities($pluginName);
+        //     throw new \Exception("No such Plugin: {$safeName}");
+        // }
     }
 
-    public static function getPluginName($pluginName = null)
+    public static function getPluginName(?string $pluginName = null): string
     {
-        try {
-            return self::getPlugin($pluginName)->getPublicName();
-        } catch (\Exception $e) {
-            $safeName = htmlentities($pluginName);
-            throw new \Exception("ERROR: Attempted to get property \"publicName\" of non-existant plugin \"{$safeName}\".", $e->getCode(), $e);
-        }
+        return self::getPlugin($pluginName)?->getPublicName() ?: self::NO_PLUGIN;
     }
 
-    public static function getExternalLoginUrl($pluginName = null)
+    public static function getExternalLoginUrl(?string $pluginName = null): string
     {
-        try {
-            return self::getPlugin($pluginName)->getExternalLoginUrl();
-        } catch (\Exception $e) {
-            $safeName = htmlentities($pluginName);
-            throw new \Exception("ERROR: Attempted to get property \"externalLoginUrl\" of non-existant plugin \"{$safeName}\".", $e->getCode(), $e);
-        }
+        return self::getPlugin($pluginName)?->getExternalLoginUrl() ?: '';
     }
 
-    public static function getExternalLogoutUrl($pluginName = null)
+    public static function getExternalLogoutUrl(?string $pluginName = null): string
     {
-        try {
-            return self::getPlugin($pluginName)->getExternalLogoutUrl();
-        } catch (\Exception $e) {
-            $safeName = htmlentities($pluginName);
-            throw new \Exception("ERROR: Attempted to get property \"externalLogoutUrl\" of non-existant plugin \"{$safeName}\".", $e->getCode(), $e);
-        }
+        return self::getPlugin($pluginName)?->getExternalLogoutUrl();
     }
 
     public static function logoutLocally()
