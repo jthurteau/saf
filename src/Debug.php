@@ -472,7 +472,7 @@ class Debug
     public static function getTraceString(bool|int $wrapped = true): string
     {
         is_bool($wrapped) && ($wrapped = $wrapped ? 1 : 0);
-        try {
+        try { //#TODO it looks like there is a better way https://www.php.net/manual/en/function.debug-backtrace.php
             throw new \Exception('debug');
         } catch (\Exception $e) {
             $trace = explode(PHP_EOL, $e->getTraceAsString());
@@ -504,12 +504,13 @@ class Debug
 
     public static function here(?string $level = self::TRACE_BARE): string
     {
-        return self::there(self::getTrace(2), $level);
+        return self::there(self::getTrace(), $level);
     }
 
-    public static function there(\Error|\Exception $e, string $level = self::TRACE_BARE): string
+    //public static function there(\Error|\Exception|array $e, string $level = self::TRACE_BARE): string
+    public static function there(\Error|\Exception|array $e, string $level = self::TRACE_BARE): string
     {
-        return Analysis::renderTrace($e->getTrace(), $level);
+        return Analysis::renderTrace(is_array($e) ? $e : $e->getTrace(), $level);
     }
 
     public static function setHaltLevel(string $level): void

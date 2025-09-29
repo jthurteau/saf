@@ -23,18 +23,19 @@ use Saf\Pdo\Db;
 
 class Audit
 {
-    public const MODE_DB = 'db';
-    public const MODE_FILE = 'file';
-    public const MODE_BACKEND = 'back';
+    public const string MODE_DB = 'db';
+    public const string MODE_FILE = 'file';
+    public const string MODE_BACKEND = 'back';
 
-    public const DEFAULT_SEARCH_LIMIT = 1000;
+    public const int DEFAULT_SEARCH_LIMIT = 1000;
+    public const int DB_TEXT_LENGTH = 64000;
 
-    protected static $supportedModes = [self::MODE_DB];
-    protected static $mode = self::MODE_DB;
-    protected static $path = null;
-    protected static $db = null;
-    protected static $statusModel = null;
-    protected static $critical = false;
+    protected static array $supportedModes = [self::MODE_DB];
+    protected static string $mode = self::MODE_DB;
+    protected static ?string $path = null;
+    protected static ?object $db = null;
+    protected static ?string $statusModel = null; //#NOTO unused
+    protected static bool $critical = false;
     # protected static $insulated = false; //#TODO add a time insulation config option
 
     public function __invoke(ContainerInterface $container, string $name, callable $callback) : Object
@@ -149,17 +150,25 @@ class Audit
                 }
             }
             $cols .= ', `request`';
-            $requestString = json_encode($remote);
-            $values .= ', ' . Pdo::escapeString($requestString);
+            $jsonRequest = json_encode($remote);
+            //#TODO if too long, dropbox the full message
+            $requestString = substr($jsonRequest, 0, self::DB_TEXT_LENGTH);
+
+            $values .= ', '.Pdo::escapeString($requestString);
             if (!is_null($user)) {
                 $cols .= ', `username`';
-                $values .= ', ' . Pdo::escapeString(trim($user));
+                $values .= ', '.Pdo::escapeString(trim($user));
             }
             $insert = "INSERT INTO {$table} ({$cols}) VALUES ({$values});";
             $result = self::$db->query()->insert($insert);
             if (!$result) {
                 self::auditFail('add query fail.');
             }
+            /*
+            elseif (strlen($jsonRequest) > self::DB_TEXT_LENGTH) {
+                Cache::store("auditFailDrop{$auditId}", $jsonRequest) || Debug::out('failed to store full audit text.');
+            }
+            */
             return $result;
         } catch (\Error | \Exception $e){
             if (self::$critical) {

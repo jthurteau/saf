@@ -188,13 +188,14 @@ class Analysis //#TODO implement as trait?
         $representation = '';
         switch($type) {
             case 'integer':
+                $representation = (string)$value;
+                return "(int){$representation}";
             case 'boolean':
-                $type = $type == 'integer' ? 'int' : 'bool';
+                $representation = $value ? 'true' : 'false';
+                return "(bool){$representation}";
+            case 'double':
                 $representation = (string)$value;
-                return "({$type}){$representation}";
-            case 'float':
-                $representation = (string)$value;
-                return "({$type}){$representation}";
+                return "(float){$representation}";
             case 'string':
                 $type = "{$type}/" . strlen($value);
                 $escValue = self::escapeTraceStrings($value);

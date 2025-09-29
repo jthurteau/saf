@@ -41,6 +41,7 @@ abstract class Front implements Cachable {
 
     protected $proxy = null;
     protected ?Front $cache = null;
+    protected int $memorySavings = 0;
 
     protected null|string|bool $lastCached = null; //#TODO configurable reporting level for this
     protected null|string|array $diskSpec = null;
@@ -67,7 +68,8 @@ abstract class Front implements Cachable {
             $memory = $memoryIndex ? Memory::load(UrlRewrite::deQuery($memoryIndex)) : null; //#NOTE force deQuery from memory for now
             if (!is_null($memory)) {
                 $this->lastCached = self::MEMORY_CACHE_CLASS . "::{$name}";
-                \Saf\Util\Profile::ping(['cached call from memory', self::class, $name, $arguments]);
+                $this->memorySavings++;
+                ///\Saf\Util\Profile::ping(['cached call from memory', self::class, $name, $arguments]);
                 return is_callable($memory) ? $memory(...$arguments) : $memory;
             }
             //#TODO make indexes an object

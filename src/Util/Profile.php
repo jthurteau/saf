@@ -54,6 +54,11 @@ class Profile
         }
     }
 
+    public static function getStartTime(): float
+    {
+        return self::init() ?? self::$microStartTime;
+    }
+
     public static function getTags(): array
     {
         return self::$taggedSteps;
@@ -67,7 +72,7 @@ class Profile
 
     protected static function generateNotice(): string
     {
-        $preset =  self::init();
+        $preset = self::init();
         $now = microtime(true);
         $gateTime = $preset ? ($now - self::$microStartTime) : null;
         $gateText = is_null($gateTime) ? 'clock not started' : $gateTime;
