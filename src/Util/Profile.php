@@ -59,6 +59,11 @@ class Profile
         return self::init() ?? self::$microStartTime;
     }
 
+    public static function getRunTime():float
+    {
+        return microtime(true) - self::getStartTime();
+    }
+
     public static function getTags(): array
     {
         return self::$taggedSteps;

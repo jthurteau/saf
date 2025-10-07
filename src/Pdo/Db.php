@@ -29,8 +29,9 @@ class Db
     public const STATE_QUERY_NO_RESULT = -2;
     public const STATE_NOT_DETECTED = -1; // last insert did not use auto-id
 
-    protected $config = [];
+    protected array $config = [];
     protected $connection = null;
+    protected $attributes = [];
     protected $connectionFailure = false;
     protected $driverName = self::DEFAULT_DRIVER;
     protected $hostName = 'localhost';
@@ -43,14 +44,15 @@ class Db
     protected $vaultKey = null;
     protected $openQueries = [];
 
-    public function __construct($options = [])
+    public function __construct(null|array|\ArrayAccess $options = [])
     {
         $this->init($options);
     }
 
-    public function init($config) : Db
+    public function init(null|array|\ArrayAccess $config = null) : Db
     {
-        $this->config = $config;
+        !is_null($config) && ($this->config = $config);
+        //#TODO implement keepPasswords
         if ( key_exists('dsn', $config) && is_array($config['dsn'])) {
             $this->configure($config['dsn']);
             if (
@@ -69,33 +71,52 @@ class Db
         ) {
             $this->connect(key_exists('dsn', $config) ? $config['dsn'] : null);
         }
+        if (key_exists('timeout', $config)) {
+            $this->attributes[\PDO::ATTR_TIMEOUT] = $config['timeout'];
+        }
         return $this;
+    }
+
+    /** 
+     * 
+    */
+    protected function loadDsn(): ?array
+    {
+        $dsn = 
+            key_exists('dsn', $this->config) && is_array($this->config['dsn'])
+            ? $this->config['dsn']
+            : [];
+        $vaultedPassword = 
+            !is_null($this->vaultId) && !is_null($this->vaultKey)
+            ? Vault::retrieve($this->vaultId, $this->vaultKey)
+            : null;
+        return ($vaultedPassword ? ['password' => $vaultedPassword] : []) + $dsn;
     }
 
     /**
      * @param string|array password string, or dsn spec array
      * @return bool connection success
      */
-    public function connect($dsn = null)
+    public function connect(null|string|array $dsn = null): bool
     {
         if (!is_null($this->connection)) {
             $this->disconnect();
         }
-        is_null($dsn) && (
-            $dsn = 
-                !is_null($this->vaultId) && !is_null($this->vaultKey)
-                ? Vault::retrieve($this->vaultId, $this->vaultKey)
-                : ''
-        ); 
+        is_null($dsn) && ($dsn = $this->loadDsn());
         is_string($dsn) && ($dsn = ['password' => $dsn]);
         $this->configure($dsn);
         $dsnString = Pdo::dsnString($this);
         $password = key_exists('password', $dsn) ? $dsn['password'] : '';
-        $options = [];
         try{
-            $this->connection = new \PDO($dsnString, $this->getUser(), $password, $options);
-            $this->connection && ($this->connectionFailure = !is_null($this->connection->errorCode()));
-            $this->clearErrors();
+            $this->connection = new \PDO($dsnString, $this->getUser(), $password, $this->attributes);
+            $errorCode = $this->connection->errorCode();
+            //$this->connection->connect();
+            $this->connectionFailure = !is_null($errorCode) && ((int)$errorCode);
+            if ($this->connectionFailure) {
+                $this->addError($this->connection->errorCode() . ':' . $this->getErrorMessage());
+            } else {
+                $this->clearErrors();
+            }
         } catch (\Error | \Exception $e) {
             $withPassword = $password ? ' (with password)' : ' (without password)';
             $this->addError($e->getMessage() . " {$dsnString}{$withPassword}");
@@ -105,25 +126,26 @@ class Db
         return true;
     }
 
-    protected function configure($dsn)
+    protected function configure($dsn): Db
     {
-        if (!is_array($dsn)) {
-            return;
+        if (is_array($dsn)) {
+            key_exists('pdodriver', $dsn) && ($this->driverName = $dsn['pdodriver']);
+            key_exists('hostspec', $dsn) && ($this->hostName = $dsn['hostspec']);
+            key_exists('hostport', $dsn) && ($this->hostPort = $dsn['hostport']);
+            key_exists('username', $dsn) && ($this->userName = $dsn['username']);
+            key_exists('database', $dsn) && ($this->schemaName = $dsn['database']);
+            key_exists('additional', $dsn) && ($this->additionalDsn = $dsn['additional']);
+            //key_exists('password', $dsn) && ($password = $dsn['password']);
         }
-        key_exists('pdodriver', $dsn) && ($this->driverName = $dsn['pdodriver']);
-        key_exists('hostspec', $dsn) && ($this->hostName = $dsn['hostspec']);
-        key_exists('hostport', $dsn) && ($this->hostPort = $dsn['hostport']);
-        key_exists('username', $dsn) && ($this->userName = $dsn['username']);
-        key_exists('database', $dsn) && ($this->schemaName = $dsn['database']);
-        key_exists('password', $dsn) && ($password = $dsn['password']);
-        key_exists('additional', $dsn) && ($this->additionalDsn = $dsn['additional']);
+        return $this;
     }
 
-    public function disconnect()
+    public function disconnect(): Db
     {
         //#TODO if !is_null($this->connection) ... disconnect
         $this->connection = null;
         $this->connectionFailure = false;
+        return $this;
     }
 
 //     public function reconnectAs($user, $password, $dbName = '')
@@ -143,12 +165,12 @@ class Db
         return $opened;
     }
 
-     public function getVersion()
+     public function getVersion(): string
      {
          return $this->connection->getAttribute(PDO::ATTR_SERVER_VERSION);
      }
 
-     public function hasTable($tableName)
+     public function hasTable(string $tableName): bool
      {
          $queries = [ //#TODO #2.0.0 this isn't driver agnostic yet.
              0 => 'SHOW TABLES;',
@@ -167,7 +189,8 @@ class Db
          return false;
      }
 
-    public function getErrorMessage($clear = false){
+    public function getErrorMessage(?bool $clear = false): string
+    {
         $currentError =
             $this->connection
             ? $this->connection->errorInfo()
@@ -196,7 +219,7 @@ class Db
         return count($this->errorMessage) > 0;
     }
 
-    public function pullErrorCallback()
+    public function pullErrorCallback(): callable
     {
         return function(){
             $errorInfo = $this->connection?->errorInfo();

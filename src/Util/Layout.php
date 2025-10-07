@@ -144,7 +144,7 @@ class Layout
      */
     public static function printLink($url)
     {
-        self::setRenderingDetected(Debug::caller(true));
+    self::setRenderingDetected(Debug::caller(true));
         print(self::getLink($url));
     }
 
@@ -385,7 +385,6 @@ $(document).ready(function() {
         if(Debug::isVerbose()) {
             DebugUi::printDebugAnchor();
             DebugUi::printDebugReveal();
-            //#CLEAN print_r([__FILE__,__LINE__,'hi17']); die;
             DebugUi::printProfileReveal();
             
         }
@@ -393,7 +392,6 @@ $(document).ready(function() {
 
     public static function debugFooter(): void
     {
-        //#CLEAN print_r([__FILE__,__LINE__,'hi11']); die;
         self::setRenderingDetected(Debug::caller(true));
         if(Debug::isEnabled()){
             DebugUi::flushBuffer();
@@ -440,7 +438,7 @@ $(document).ready(function() {
     {
         if(key_exists('forceDesktop', $request)) {
             if (Truthy::filter($request['forceDesktop'])) {
-                $_SESSION['forceDesktopView'] = TRUE;
+                $_SESSION['forceDesktopView'] = true;
             } else if (key_exists('forceDesktopView', $_SESSION)) {
                 unset($_SESSION['forceDesktopView']);
             }
