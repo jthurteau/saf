@@ -12,7 +12,7 @@ namespace Saf\Psr;
 
 class StandardRequestHandler {
 
-    public const DEFAULT_REQUEST_SEARCH = 'apg';
+    public const DEFAULT_REQUEST_SEARCH = 'APG';
 
     public const STACK_ATTRIBUTE = 'resourceStack';
 

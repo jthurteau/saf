@@ -22,7 +22,7 @@ abstract class RequestHandler implements RequestHandlerInterface
     use RequestHandlerCommon;
 
     public const STACK_ATTRIBUTE = 'resourceStack';
-    public const DEFAULT_REQUEST_SEARCH = 'apg';
+    public const DEFAULT_REQUEST_SEARCH = 'APG';
     public const MESSAGE_UNSUPPORTED = 'unsupported-request';
     public const MESSAGE_DENIED = 'access denied';
 

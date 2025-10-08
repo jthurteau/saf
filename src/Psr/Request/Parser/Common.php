@@ -107,13 +107,17 @@ trait Common
 		if (!is_array($sources)) {
 			$sources = is_int($sources) ? ['stack' => $sources] : ['request' => $sources];
 		}
+        \Saf\Debug::outData(['extract', 's' => $sources, 'r' => $request, 'd' => $default]);
 		foreach($sources as $source => $index) {
 			if (is_int($source)) {
 				$source = is_int($index) ? 'stack' : 'request';
 			}
+            
+            \Saf\Debug::outData(['source', $source]);
 			switch ($source) {
 				case 'stack' :
 					$stack = self::getResourceStack($request);
+                    \Saf\Debug::outData(['stack', 'i' => $index, 'o' => $stack]);
 					if (key_exists($index, $stack) && '' !== $stack[$index] ) {
 						return $stack[$index];
 					}
@@ -134,6 +138,8 @@ trait Common
 				// 	break;
 				case 'request' :
                     $result = self::requestSearch($request, self::defaultRequestSearchOrder().":{$index}");
+                    
+                    \Saf\Debug::outData(['request', 'i' => $index, gettype($request), 'r' => $request, $result]);
                     break;
 					// if ($request->has($index)) {
 					// 	return $request->getParam($index);
@@ -150,6 +156,7 @@ trait Common
 
     public static function requestSearch(ServerRequestInterface $request, string $search): mixed
     {
+        \Saf\Debug::outData(['search', $search]);
         $sourceParts = explode(':', $search, 2);
         $source = count($sourceParts) ? $sourceParts[0] : StandardRequestHandler::DEFAULT_REQUEST_SEARCH;
         $index = count($sourceParts) ? $sourceParts[1] : $sourceParts[0];
@@ -174,6 +181,8 @@ trait Common
                         return $get[$index];
                     }
                     break;
+                default:
+                    //\Saf\Debug::outData(["unsupported search: {$facet} on {$index}"]);
             }
         }
         return null;
