@@ -26,9 +26,13 @@ class Access
     public const string TYPE_LOCK = 'key-required';
     public const string TYPE_DENIED = 'access-required';
     public const string TYPE_NONE = 'no-access';
+    public const array PREFIX_KEYS = [self::KEY_KEY];
     
     public static function is(string $criteria, string $key): bool
     {
-        return str_ends_with($criteria, "-{$key}");
+        return
+            in_array($key, self::PREFIX_KEYS)  
+            ? str_starts_with($criteria, "{$key}-") 
+            : str_ends_with($criteria, "-{$key}");
     }
 }

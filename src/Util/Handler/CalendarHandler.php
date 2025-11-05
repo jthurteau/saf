@@ -35,7 +35,7 @@ class CalendarHandler extends RequestHandler implements RequestHandlerInterface
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        parent::prehandle($request);
+        $this->prehandle($request);
         $status = Status::STATUS_200_OK;
         $result = $this->handleFunction(self::INDEX_FUNCTION, $request, $status);
         $result['calendarModel'] = $this->calendarModel ? new $this->calendarModel() : new CalendarModel();

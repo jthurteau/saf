@@ -197,10 +197,13 @@ trait Common
         return array_shift($stack);
     }
 
-    public static function peekResource($request)
-    {
+    /**
+     * checks the first item on the resource stack
+     */
+    public static function peekResource($request): string
+    { // #TODO accept an int and return a concatinated string of the first/multiple entries.
         $resourceStack = self::getResourceStack($request);
-        return array_shift($resourceStack);
+        return array_shift($resourceStack) ?? '';
     }
 
     /**
@@ -230,6 +233,7 @@ trait Common
         $first = array_shift($resourceStack);
         $request = self::updateRequestStack($request, $resourceStack);
         return $first; //#TODO verify this handles the object/reference as intended
+        //#TODO it does NOT
     }
 
     /**
