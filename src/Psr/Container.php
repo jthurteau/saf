@@ -52,4 +52,14 @@ class Container {
             ? $returnValue 
             : $returnValue->getArrayCopy();
     }
+
+    public static function getLocalConfig($config, string $class): array
+    {
+        return 
+            is_array($config) 
+                && key_exists($class, $config)
+                && is_array($config[$class])
+            ? $config[$class]
+            : [];
+    }
 }

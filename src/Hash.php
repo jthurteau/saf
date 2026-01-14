@@ -290,16 +290,19 @@ class Hash
         return Debug::stringR($array);
     }
     
-    public static function containsTokens($string, $tokenArray)
+    /**
+     * scan an array/Traversable for strings that contain a string
+     */
+    public static function containsTokens(string $string, array|traversable $tokenArray): bool
     {
         foreach($tokenArray as $token) {
-            if (strpos($string, $token) !== false) {
+            if (is_string($token) && strpos($string, $token) !== false) {
                 return true;
             }
         }
         return false;
     }
-    public static function urlencode(null|string|array $paramName, ?array $array = null): string
+    static function urlencode(null|string|array $paramName, ?array $array = null): string
     {
         //#TODO #2.0 swap the order eventually
         //#TODO #2.0 handle nested arrays

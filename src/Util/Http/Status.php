@@ -12,7 +12,7 @@ namespace Saf\Util\Http;
 
 class Status
 {
-
+    //#TODO make these HTTP_
     public const int STATUS_200_OK = 200;
     public const int STATUS_201_CREATED = 201;
     public const int STATUS_202_ACCEPTED = 202;

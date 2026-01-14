@@ -33,13 +33,13 @@ trait Common
      * @param mixed $default value to return if no match is found, defaults to <null>
      * #TODO #2.1.0 add option for each source to be an array so more than one value in each can be searched
      */
-    protected function extractParam($map, ServerRequestInterface $request, $default = null)
+    protected function extractParam(int|string|array|\ArrayAccess $map, ServerRequestInterface $request, $default = null): mixed
     {
         //is_null($request) && ($request = $this->getRequest());
         if (is_null($request)) {
             return $default;
         }
-        if (!is_array($map)) {
+        if (is_int($map) || is_string($map)) {
             $map = is_int($map) ? ['stack' => $map] : ['request' => $map];
         }
 
