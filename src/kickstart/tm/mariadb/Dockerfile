@@ -1,7 +1,6 @@
 ##
 # MariaDB Dockerfile # https://hub.docker.com/_/mariadb
 # for ncsulibraries - jthurtea
-# development container that mounts the repo
 
 FROM mariadb:10.11 as builder 
 

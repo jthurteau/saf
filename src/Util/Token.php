@@ -21,6 +21,8 @@ class Token
 
     public const string TYPE_LINK = 'link';
     public const string TYPE_DATA = 'data';
+    public const string TYPE_TAG = 'tag';
+    public const string DATA_ID = 'id';
 
     public const array LEAF_TYPES = [
         self::TYPE_LINK,
@@ -88,6 +90,14 @@ class Token
             self::token($token) == self::TYPE_DATA
             ? self::detoken($token)
             : null;
+    }
+
+    /**
+     * 
+     */
+    public static function ize(string $token, string $data, ?object $source = null): string
+    {
+        return $token . self::getDelim($source) . $data;
     }
 
 }
