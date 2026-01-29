@@ -61,38 +61,21 @@ trait Map
     public function listSub(int|string $id, null|array|\Traversable $data = null) : array
     {
         is_null($data) && ($data = $this->getMap());
-        $result = [];
-        $configMatch = $this->linkSearch($id, $data);
-        if ($configMatch) {
-            foreach($configMatch as $token => $match) {
-                $id = 
-                    Token::token($token, $this)
-                    ? Token::detoken($token, $this)
-                    : null; 
-                if ($id) {
-                    $source = Token::link($id);
-                    $source && ($result[$source[0]] = $source[1]);
-                }
-            }
-        }
-        return $result;
-        $result = [];
-        // $configMatch = self::idSearch($zoneId, $this->zoneMap);
+        $list = [];
+        // $configMatch = $this->linkSearch($id, $data);
         // if ($configMatch) {
-        //     foreach ($configMatch as $areaToken => $areaData) {
-        //         $areaName = 
-        //             self::TOKEN_DELIM != self::token($areaToken)
-        //             ? self::detoken($areaToken)
+        //     foreach($configMatch as $token => $match) {
+        //         $id = 
+        //             Token::token($token, $this)
+        //             ? Token::detoken($token, $this)
         //             : null; 
-        //         if ($areaName) {
-        //             $source = $this->getSource($areaName);
-        //             if ($source) {
-        //                 $result[$source[0]] = $source[1];
-        //             }
+        //         if ($id) {
+        //             $source = Token::link($id);
+        //             $source && ($result[$source[0]] = $source[1]);
         //         }
         //     }
         // }
-        // return $result;
+        return $list;
     }
 
     /**
@@ -270,6 +253,26 @@ trait Map
             }
         }
         return null;        
+    }
+
+    /**
+     * takes a list of node identifiers and returns 
+     * a list of aliases including any sub-nodes.
+     */
+    public function ungroup(int|string|array $nodes, null|array|\Traversable $data = null): array
+    {
+        $list = [];
+        is_null($data) && ($data = $this->getMap());
+        foreach(Hash::coerce($nodes) as $identifier) {
+            $alias = 
+                is_int($identifier) 
+                ? $this->getAlias($identifier)
+                : $identifier; //#TODO handle links
+            if (is_string($identifier)) {
+                $list = array_merge($list, [$alias], listSub($alias, $data));
+            }
+        }
+        return array_unique($list);
     }
 
     /**
