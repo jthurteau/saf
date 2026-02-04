@@ -125,8 +125,7 @@ class Hash
      * @param array $array possible array to search
      * @param default $default value if key is not in array
      */
-    //public static function extractIfArray($key, mixed $possibleArray, $default = null)
-    public static function extractIfArray($key, $possibleArray, $default = null)
+    public static function extractIfArray(int|string $key, mixed $possibleArray, $default = null): mixed
     {
         // return(
         //     ( is_array($possibleArray) || ($possibleArray instanceof \ArrayAccess)) 
@@ -134,13 +133,25 @@ class Hash
         //     ? $possibleArray[$key]
         //     : (!is_null($default) ? $default : throw new NoDefault())
         // );
-		$available = 
-			( is_array($possibleArray) || ($possibleArray instanceof \ArrayAccess)) 
-			&& key_exists($key, $possibleArray);
-		if (!$available && is_null($default)) {
-			throw new NoDefault();
-		}
-		return $available ? $possibleArray[$key] : $default;
+        $available = 
+            ( is_array($possibleArray) || ($possibleArray instanceof \ArrayAccess)) 
+            && key_exists($key, $possibleArray);
+        if (!$available && is_null($default)) {
+            throw new NoDefault();
+        }
+        return $available ? $possibleArray[$key] : $default;
+    }
+
+    /**
+     * Searches the passed $possibleArray value for the specified key. If
+     * it does not exist or the passed value isn't compatible, return the $default value
+     */
+    public static function extractIfIndexed(int|string $key, mixed $possibleArray, $default = null): mixed
+    {
+        $available = 
+            ( is_array($possibleArray) || ($possibleArray instanceof \ArrayAccess)) 
+            && key_exists($key, $possibleArray);
+        return $available ? $possibleArray[$key] : $default;
     }
 
     /**
@@ -824,10 +835,11 @@ class Hash
         return self::isSingleton($value) ? $value : null;
     }
 
-//    public static function firstKeyMatching($value, array|\ArrayAccess $array)
-    public static function firstKeyMatching($value, $array)
+    /**
+     * returns the first index matching the passed value in $array
+     */
+    public static function firstKeyMatching($value, array|\Traversable $array): mixed
     {
-        self::assert($array);
         foreach($array as $key => $member) {
             if ($member == $value) {
                 return $key;

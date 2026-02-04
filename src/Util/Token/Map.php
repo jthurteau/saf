@@ -29,13 +29,33 @@ trait Map
     abstract function getMap(): array|\Traversable;
 
     /**
+     * returns trait contstant link delimiter unless the composing class defines one
+     */
+    protected function selectLinkDelim(): string
+    {
+        return method_exists($this, 'linkDelimString')
+        ? $this->linkDelimString()
+        : self::DEFAULT_LINK_DELIM;
+    }
+
+    /**
+     * returns trait contstant wildcard matches unless the composing class defines them
+     */
+    protected function selectWildcardMatch(): array
+    {
+        return method_exists($this, 'wildcardMatchStrings') 
+        ? $this->wildcardMatchStrings() 
+        : self::DEFAULT_WILDCARDs; //#TODO enforce array of strings
+    }
+
+    /**
      * returns a flat list of all detokened strings
      */
     public static function flatten(?array $data = null) : array
     {
         $return = [];
         foreach($data ?? [] as $token => $subData) {
-            if (!in_array(Token::token($token), self::LEAF_TYPES)) {
+            if (!in_array(Token::token($token), Token::LEAF_TYPES)) {
                 $return[] = Token::detoken($token);
                 $return = array_merge($return, self::flatten($subData));
             }
@@ -124,10 +144,7 @@ trait Map
      */
     public function getLinks(string|array $aliases, bool $expanded = true, null|array|\Traversable $data = null): array
     {
-        $wildcard = 
-            method_exists($this, 'wildcardMatchStrings') 
-            ? $this->wildcardMatchStrings() 
-            : self::DEFAULT_WILDCARDs; //#TODO enforce array of strings
+        $wildcard = $this->selectWildcardMatch();
         if (
             (!is_array($aliases) && in_array($aliases, $wildcard))
             || (is_array($aliases) && array_intersect($aliases, $wildcard))
@@ -159,10 +176,7 @@ trait Map
      */
     public function link(string $remote, int|string $remoteId): string
     {        
-        $remoteDelim = 
-            method_exists($this, 'linkDelimString')
-            ? $this->linkDelimString()
-            : self::DEFAULT_LINK_DELIM;
+        $remoteDelim = $this->selectLinkDelim();
         return "{$remote}{$remoteDelim}{$remoteId}";
     }
 
@@ -199,9 +213,41 @@ trait Map
         return null;
     }
 
-    public function getAllLinks(null|array|\Traversable $map = null): array
-    {
+    /**
+     * returns internal data on one or more nodes
+     * if and array is passed, the results are indexed by the provided indexes
+     */
+    public function getData(string|int|array|\Traversable $zones, ?string $field = null): mixed
+    { //#TODO handle links
+        $results = [];
+        foreach(Hash::coerce($zones) as $index => $zone) {
+            $results[$index] = $this->dataFor($zone);
+            if (Hash::traversable($zones) && !is_null($results[$index])) {
+                $alias = is_string($zone) ? $zone : $this->getAlias($zone);
+                $alias && ($results[$index][Token::ize(Token::TYPE_TAG, 'name', $this)] = $alias);
+            }
+        }
+        return Hash::traversable($zones) ? $results : reset($results);
+        //return Hash::traversable($zones) ? $results : array_first($results); //#TODO PHP 8.5
+    }
 
+    /**
+     * returns an array of all remote links in the map
+     */
+    public function getAllLinks(null|array|\Traversable $data = null): array
+    {
+        $all  = [];
+        foreach ($data ?? $this->getMap() as $token => $sub) {
+            if (
+                Token::token($token) == Token::TYPE_LINK
+            ) {
+                $remote = Token::detoken($token);
+                $all[] = $this->link($remote, $sub);
+            } elseif (is_array($sub)) {
+                $all = array_merge($all, $this->getAllLinks($sub));
+            }
+        }
+        return $all;
     }
 
     /**
@@ -227,6 +273,17 @@ trait Map
             }
         }
         return null;
+    }
+
+    /**
+     * return the remote id for a link
+     */
+    public function dereference(string $link): ?int
+    { // #TODO add optional remote name check
+        return 
+            str_contains($link, $this->selectLinkDelim()) 
+            ? (int)substr($link, strpos($link, $this->selectLinkDelim()) + 1)
+            : null;
     }
 
     /**
@@ -305,7 +362,7 @@ trait Map
     /**
      * search the map for a node with a link matching the provided remote and id, returning the node if found
      */
-    public function linkSearch(string $remote, mixed $id,  ?array $data = null) : ?array
+    public function linkSearch(string $remote, mixed $id, ?array $data = null) : ?array
     {
         foreach ($data ?? $this->getMap() as $token => $sub) {
             if (is_array($sub)) {
@@ -315,7 +372,7 @@ trait Map
                         && Token::detoken($subToken) == $remote
                         && $id === $leaf
                     ) {
-                        return self::tempTag($sub, $token);
+                        return self::tag($sub, $token);
                         return $sub;
                     }
                 }
@@ -336,8 +393,8 @@ trait Map
     {
         foreach ($data ?? $this->getMap() as $token => $sub) {
             if (is_array($sub) && Token::detoken($token) == $alias) {
-                return self::tempTag($sub, $token);
-            } else {
+                return self::tag($sub, $token);
+            } elseif (is_array($sub)) {
                 $inner = $this->aliasSearch($alias, $sub);
                 if ($inner) {
                     return $inner;
@@ -360,7 +417,7 @@ trait Map
                         && Token::detoken($subToken) == Token::DATA_ID
                         && $id === $leaf
                     ) {
-                        return self::tempTag($sub, $token);
+                        return self::tag($sub, $token);
                     }
                 }
                 $recurse = $this->idSearch($id, $sub);
@@ -372,15 +429,15 @@ trait Map
         return null;
     }
 
-    /**
-     * temporary method alternative to ::tag() to ensure backwards compatability
-     */
-    public static function tempTag(array $node, string $token): array
-    {
-        $node['type'] = Token::token($token);
-        $node['name'] = Token::detoken($token);
-        return $node;
-    }
+    // /**
+    //  * temporary method alternative to ::tag() to ensure backwards compatability
+    //  */
+    // public static function tempTag(array $node, string $token): array
+    // {
+    //     $node['type'] = Token::token($token);
+    //     $node['name'] = Token::detoken($token);
+    //     return $node;
+    // }
 
     /**
      * return the current node tagged with the token information
@@ -390,6 +447,14 @@ trait Map
         $node[Token::ize(Token::TYPE_TAG, 'type', $this)] = Token::token($token);
         $node[Token::ize(Token::TYPE_TAG, 'name', $this)] = Token::detoken($token);
         return $node;
+    }
+
+    /**
+     * return the tag index for a tag name
+     */
+    public function detag(string $name): string
+    {
+        return Token::ize(Token::TYPE_TAG, $name, $this);
     }
 
 }
