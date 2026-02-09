@@ -5,7 +5,8 @@
  * 
  * @author Troy Hurteau <jthurtea@ncsu.edu>
  *
- * Utility functions for token indexed data
+ * Utility functions for nested, token indexed data
+ * tokens are a combined, delimited identifier of type and alias (name)
  */
 
 declare(strict_types=1);
@@ -24,7 +25,8 @@ trait Map
     public const null ALL_DATA = null;
 
     /**
-     * objects that leverage this trait must return a token map (array or Traversable)
+     * objects that leverage this trait must return a token map of data (array or Traversable)
+     * this map is used by many traversal methods when no map is provided
      */
     abstract function getMap(): array|\Traversable;
 
@@ -64,7 +66,7 @@ trait Map
     }
 
     /**
-     * returns a nested structure of token strings
+     * returns a nested structure of detoken strings
      */
     public static function map(array|\Traversable $data) : array
     {
@@ -78,23 +80,26 @@ trait Map
         return $return;
     }
 
+    /**
+     * return a list of all subnodes by alias
+     */
     public function listSub(int|string $id, null|array|\Traversable $data = null) : array
     {
-        is_null($data) && ($data = $this->getMap());
         $list = [];
-        // $configMatch = $this->linkSearch($id, $data);
-        // if ($configMatch) {
-        //     foreach($configMatch as $token => $match) {
-        //         $id = 
-        //             Token::token($token, $this)
-        //             ? Token::detoken($token, $this)
-        //             : null; 
-        //         if ($id) {
-        //             $source = Token::link($id);
-        //             $source && ($result[$source[0]] = $source[1]);
-        //         }
-        //     }
-        // }
+        if ($id === $this->data(Token::DATA_ID, $data)) {
+            return $this->listSub(self::FOUND, $data);
+        }
+        foreach($data ?? $this->getMap() as $token => $sub) {
+            if ($id === Token::detoken($token)) {
+                return $this->listSub(self::FOUND, $sub);
+            } elseif (!in_array(Token::token($token), Token::LEAF_TYPES)) {
+                $match = $id === self::FOUND ? self::FOUND : ''; 
+                if ($match) { 
+                    $list[] = Token::detoken($token);
+                }
+                is_array($sub) && $list = array_merge($list, $this->listSub($match ?: $id, $sub));
+            }
+        }
         return $list;
     }
 
@@ -119,7 +124,8 @@ trait Map
     }
 
     /**
-     * retreives data of name from the current set, returns all data if null|ALL_DATA is passed
+     * retreives data of name from the current set, 
+     * returns all data as an array if null|ALL_DATA is passed as the lookup
      */
     public function data(?string $name, mixed $lookup): mixed
     {
@@ -139,7 +145,18 @@ trait Map
     }
 
     /**
-     * gets all links in the map related to an alias, 
+     * returns the id for a provided node (array), alias, or link
+     */
+    public function id(string|array $source, null|array|\Traversable $data = null): ?int
+    {
+        return 
+            is_array($source) 
+            ? $this->data(Token::DATA_ID, $source) 
+            : ($this->getData($source, Token::DATA_ID, $data)[Token::DATA_ID] ?: null);
+    }
+
+    /**
+     * gets all links in the map related to one or more aliases, 
      * including sub-nodes if $expanded
      */
     public function getLinks(string|array $aliases, bool $expanded = true, null|array|\Traversable $data = null): array
@@ -172,6 +189,14 @@ trait Map
     }
 
     /**
+     * returns true if the provided string is a link (not an alias)
+     */
+    public function isLink(string $string): bool
+    {
+        return strpos($string, $this->selectLinkDelim()) !== FALSE;
+    }
+
+    /**
      * returns the string link for a remote and remoteId
      */
     public function link(string $remote, int|string $remoteId): string
@@ -187,44 +212,52 @@ trait Map
     {
         foreach($data ?? $this->getMap() as $token => $sub){
             $alias = Token::detoken($token);
-            if (is_string($id) && $this->getLink($id, $sub)) {
-                return $alias;
-            } elseif (is_array($sub) && is_int($id)) {
-                $subId = $this->data(Token::DATA_ID, $sub);
-                if ($subId && $id == $subId) {
-                    return $alias;
+            if (is_array($sub)) {
+                if (is_int($id)) {
+                    $dataId = $this->data(Token::DATA_ID, $sub);
+                    if ($dataId && $id == $dataId) {
+                        return $alias;
+                    }
                 }
-                $inner = getAlias($id, $sub);
-                if ($inner) {
+                $inner = $this->getAlias($id, $sub);
+                if ($inner === self::FOUND) {
+                    return $alias;
+                } elseif ($inner) {
                     return $inner;
                 }
+            } elseif (
+                is_string($id)
+                && Token::token($token) == Token::TYPE_LINK
+                && Token::detoken($token) == $this->address($id)
+                && (string)$sub == $this->dereference($id) 
+            ) {
+                return self::FOUND;
             }
-            // if($type != 'source') {
-            //     $inner = $this->getAliasForRemoteId($remote, $id, $data);
-            //     if ($inner) {
-            //         return  $inner === self::TOKEN_FOUND ? self::detoken($areaToken) : $inner;
-            //     }
-            // } elseif ($remote == self::detoken($areaToken)) {
-            //     if ($data == $id || is_array($data) && in_array($id, $data)) {
-            //         return self::TOKEN_FOUND;
-            //     }
-            // }
         }
         return null;
     }
 
     /**
-     * returns internal data on one or more nodes
+     * returns internal data on one or more nodes, tagged with their alias
      * if and array is passed, the results are indexed by the provided indexes
      */
-    public function getData(string|int|array|\Traversable $zones, ?string $field = null): mixed
-    { //#TODO handle links
+    public function getData(
+        string|int|array|\Traversable $zones, 
+        ?string $field = null, 
+        null|array|\Traversable $data = null
+    ): mixed {
         $results = [];
         foreach(Hash::coerce($zones) as $index => $zone) {
-            $results[$index] = $this->dataFor($zone);
-            if (Hash::traversable($zones) && !is_null($results[$index])) {
-                $alias = is_string($zone) ? $zone : $this->getAlias($zone);
-                $alias && ($results[$index][Token::ize(Token::TYPE_TAG, 'name', $this)] = $alias);
+            $results[$index] = 
+                is_int($zone) || is_string($zone)
+                ? $this->dataFor($zone, $data)
+                : null;
+            $alias = //#TODO get the full token instead and also tag with type...
+                is_string($zone) && !$this->isLink($zone)
+                ? $zone
+                : $this->getAlias($zone, $data);
+            if ($alias && !is_null($results[$index])) {
+                $results[$index][Token::ize(Token::TYPE_TAG, 'name', $this)] = $zone;
             }
         }
         return Hash::traversable($zones) ? $results : reset($results);
@@ -235,7 +268,7 @@ trait Map
      * returns an array of all remote links in the map
      */
     public function getAllLinks(null|array|\Traversable $data = null): array
-    {
+    { //#TODO duplicativeish with getLinks?
         $all  = [];
         foreach ($data ?? $this->getMap() as $token => $sub) {
             if (
@@ -287,14 +320,33 @@ trait Map
     }
 
     /**
+     * return the remote source for a link
+     */
+    public function address(string $link): ?string
+    { // #TODO add optional remote name check
+        return 
+            str_contains($link, $this->selectLinkDelim()) 
+            ? substr($link, 0, strpos($link, $this->selectLinkDelim()))
+            : null;
+    }
+
+    /**
      * returns data for a node in the map matching the passed identifier (if found)
      * returns only the matching data field if provided, otherwise returns an array of all data
      * for the matching node
      */
     public function dataFor(string|int $id, ?string $field = null, null|array|\Traversable $data = null): mixed
     { //#TODO support link lookup (detect linkDelimString|DEFAULT_LINK_DELIM)
-        $match = is_int($id) ? $this->idSearch($id) : $this->aliasSearch($id);
-        return $match ? $this->data(self::ALL_DATA, $match) : null;
+        $match = 
+            is_int($id) 
+            ? $this->idSearch($id, $data) 
+            : (
+                $this->isLink($id)
+                ? $this->linkSearch($id, $data)
+                : $this->aliasSearch($id, $data)
+            );
+            $data = $match ? $this->data(self::ALL_DATA, $match) : null;
+        return $field ? (key_exists($field, $data) ? $data[$field] : null) : $data;
     }
 
     /**
@@ -338,21 +390,23 @@ trait Map
     public function lookupRoot(string $alias, ?string $type = null, null|array|\Traversable $data = null): ?string
     {
         foreach ($data ?? $this->getMap() as $token => $sub) {
-            if (Token::token($token) == $type) {
-                $currentAlias = Token::detoken($token);
-                if (
-                    $currentAlias == $alias 
-                    || (
-                        is_array($sub)
-                        && $this->aliasSearch($alias, $sub)
-                    )
-                ) {
-                    return $currentAlias;
-                } elseif (is_array($sub)) {
-                    $subMatch = $this->lookupRoot($alias, $type, $data);
-                    if ($subMatch) {
-                        return $subMatch;
-                    }
+            $typeMatch = is_null($type) || Token::token($token) == $type;
+            $currentAlias = Token::detoken($token);
+            if ($typeMatch) {
+                if ($currentAlias === $alias) {
+                    return $currentAlias; //$type is_null ? found : $currentAlias?
+                } 
+                // elseif (is_array($sub)) {
+                //     $subMatch = $this->lookupRoot($alias, null, $sub);
+                //     if ($subMatch) {
+                //         return $currentAlias;
+                //     }
+                // }
+            }
+            if (is_array($sub)) {
+                $subMatch = $this->lookupRoot($alias, $typeMatch ? null : $type, $sub);
+                if ($subMatch) {
+                    return $typeMatch ? $currentAlias : $subMatch;
                 }
             }
         }
@@ -360,7 +414,8 @@ trait Map
     }
 
     /**
-     * search the map for a node with a link matching the provided remote and id, returning the node if found
+     * search the map for a node with a link matching the provided remote and id, 
+     * returning the node tagged with alias and type if found
      */
     public function linkSearch(string $remote, mixed $id, ?array $data = null) : ?array
     {
@@ -387,7 +442,8 @@ trait Map
 
     /**
      * search the map for a node with an alias (tokenized identifier) 
-     * matching the provided string, returning the node if found
+     * matching the provided string,
+     * returning the node tagged with its alias and type if found
      */
     public function aliasSearch(string $alias,  ?array $data = null) : ?array
     {
@@ -405,7 +461,8 @@ trait Map
     }
 
     /**
-     * search the map for a data-id matching the provided id, returning the node if found
+     * search the map for a data-id matching the provided id, 
+     * returning the node tagged with its alias and type
      */
     public function idSearch(mixed $id,  ?array $data = null) : ?array
     {
@@ -452,7 +509,7 @@ trait Map
     /**
      * return the tag index for a tag name
      */
-    public function detag(string $name): string
+    public function getTag(string $name): string
     {
         return Token::ize(Token::TYPE_TAG, $name, $this);
     }

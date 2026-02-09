@@ -252,4 +252,42 @@ trait Common
         return explode(StandardRequestHandler::URI_PATH_DELIM, trim($uri));
     } 
 
+    /**
+     * performs some basic normalization of input, 
+     * accepts an optional default or callback as a second parameter,
+     * callbacks can only by Closure or __invokable object implementations,
+     * default values can only be objects if they are not __invokable, 
+     * (but they may be a callback that supplies a default)  
+     */
+    public static function normalize(mixed $input): mixed
+    {
+        $aux = func_num_args() > 1 ? func_get_arg(2) : null;
+        $default = 
+            is_object($aux) && is_callable($aux) 
+            ? $aux(StandardRequestHandler::CALLBACK_DEFAULT) 
+            : (func_num_args() > 1 ? $aux : $input);
+        $callback = is_callable($aux) ? $aux : function(){return 0;};
+        switch(gettype($input)){
+            case 'string':
+                if (is_numeric($input)){
+                    $intVal = filter_var(
+                        $input, 
+                        \FILTER_VALIDATE_INT, 
+                        $callback(StandardRequestHandler::CALLBACK_OPTIONS, \FILTER_VALIDATE_INT)
+                    );
+                    $floatVal = 
+                        $intVal !== false 
+                        ? filter_var(
+                            $input, 
+                            \FILTER_VALIDATE_FLOAT, 
+                            $callback(StandardRequestHandler::CALLBACK_OPTIONS, \FILTER_VALIDATE_FLOAT)
+                        ) : $default;
+                    return $intVal !== false ? $intVal : ( $floatVal !== false ? $floatVal : $default); 
+                }
+                return $default;
+            default:
+                return $default;
+        }
+    }
+
 }
