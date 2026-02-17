@@ -16,18 +16,18 @@ require_once(__DIR__ . '/Filter.php');
 
 class Truthy extends Filter
 {
-	protected static $_truthyStrings = array(
-		'y','yes','1','t','true'
-	);
-	public static function filter($value)
-	{
-		if(is_bool($value)){
-			return $value;
-		}
+    protected static $truthyStrings = [
+        'y', 'yes', '1', 't', 'true'
+    ];
+    public static function filter($value): bool
+    {
+        if(is_bool($value)){
+            return $value;
+        }
 
-		if(is_string($value)){
-			return in_array(strtolower(trim($value)), self::$_truthyStrings);
-		}
-		return (bool)$value;
-	}
+        if(is_string($value)){
+            return in_array(strtolower(trim($value)), self::$truthyStrings);
+        }
+        return (bool)$value;
+    }
 }

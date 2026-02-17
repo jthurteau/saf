@@ -16,6 +16,7 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Mezzio\Template\TemplateRendererInterface; #TODO this shouldn't be hard coded for Mezzio
 use Saf\Agent;
+use Saf\Debug;
 #use Saf\Framework\AutoPipe;
 use Saf\Psr\Request\RedirectHandler;
 use Saf\Psr\Request\ForwardHandler;
@@ -34,7 +35,7 @@ class FoundationMiddleware implements MiddlewareInterface
     {
         $config = $container->get('config')?->getArrayCopy() ?: null;
         if ($config && key_exists('localDevEnabled', $config) && $config['localDevEnabled']) {
-            \Saf\Debug::registerHandlers();
+            Debug::registerHandlers();
         }
         self::$router = $container->get(\Mezzio\Router\RouterInterface::class);
         self::$baseRoute = AutoPipe::baseRoute($app, $container);
@@ -45,8 +46,8 @@ class FoundationMiddleware implements MiddlewareInterface
     {
 
         \Saf\Util\Profile::ping('foundation pipeline entered');
-        \Saf\Debug::sessionReadyListner(); // auth is before this section of the pipe and that seems to be what starts the session,
-
+        Debug::sessionReadyListner(); // auth is before this section of the pipe and that seems to be what starts the session,
+        Debug::isEnabled() && Debug::middlewareCallback($request);
         try {
             ForwardHandler::register(self::$baseRoute, self::$router);
             try {

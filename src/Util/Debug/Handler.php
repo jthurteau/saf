@@ -14,7 +14,10 @@ use Saf\Debug;
 use Saf\Kickstart;
 use Saf\Util\Http\Status;
 use Saf\Util\Debug\Ui;
+use Saf\Util\Time;
 use Saf\Audit;
+
+use Psr\Http\Message\ServerRequestInterface;
 
 class Handler 
 {
@@ -236,6 +239,27 @@ class Handler
             }
         }
         return false;
+    }
+
+    public static function middlewareHook(object|array $request):void
+    {
+        $translatedTime = null;
+        if(
+            is_object($request) 
+            && is_a($request, ServerRequestInterface::class)
+        ) {
+            $timeOffset = $request->getAttribute('debugOffset', null);
+            if (!is_null($timeOffset)) {
+                $translatedTime =
+                    Time::isTimeStamp($timeOffset)
+                    ? $timeOffset
+                    : strtotime($timeOffset);
+            } else {
+                $get = $request->getQueryParams();
+                $translatedTime = Time::parse($get['debugTime'] ?? '');
+            }
+        }
+        !is_null($translatedTime) && Time::set($translatedTime);
     }
 
     public static function audit(array $point): void

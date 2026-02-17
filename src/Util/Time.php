@@ -397,6 +397,23 @@ class Time
         $modMonth = str_pad((string)$modMonth, 2, '0', STR_PAD_LEFT);
         return strtotime("{$modYear}-{$modMonth}-{$modDay}T{$modHour}:{$modMin}:{$modSec}");
     }
+
+    /**
+     * parse a string as a time delta or time string, returning the resulting timestamp.
+     * uses the insulated time unless $insulated is false.
+     */
+    public static function parse(?string $time, ?bool $insulated = true): ?int
+    {
+        $time = trim($time);
+        if ($time === '') {
+            return null;
+        } elseif (is_numeric($time)) {
+            return ($insulated ? self::time() : time()) + intval($time);
+        } else {
+            $interpreted = strtotime($time, $insulated ? self::time() : time());
+            return is_int($interpreted) ? $interpreted : null;
+        }
+    }
     
     /**
      * detects valid timestamps

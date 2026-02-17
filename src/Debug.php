@@ -114,17 +114,18 @@ class Debug
     public const string EOL = "\n";
    
     /**
-     * key in $_Session to store debug mode state
+     * key in $_SESSION to store debug mode state
+     * also the $_GET key to check for enabling debug when idle
      */
     public const string SESSION_SWITCH = 'debug';
 
     /**
-     * key in $_Session to store debug mode state
+     * the $_GET key to check for putting debug into idle
      */
     public const string SESSION_OFF_SWITCH = 'no'.self::SESSION_SWITCH;
 
     /**
-     * key in $_Session to store debug mode state
+     * the $_GET key to check for putting debug into mute
      */
     public const string SESSION_MUTE_SWITCH = 'silent'.self::SESSION_SWITCH;
 
@@ -259,15 +260,6 @@ class Debug
     }
 
     /**
-     * @return bool session detected (session is ready and available)
-     */
-    public static function sessionCheck(): bool
-    {
-        self::$sessionReady = self::$sessionReady || Session::ready();
-        return self::$sessionReady;
-    }
-
-    /**
      * writes debug mode to session if the session was not available during init 
      * and reapplies mode settings
      * ! Frameworks and Apps should call this if session is initialized after debug.
@@ -281,9 +273,18 @@ class Debug
     }
 
     /**
+     * @return bool session detected (session is ready and available)
+     */
+    protected static function sessionCheck(): bool
+    {
+        self::$sessionReady = self::$sessionReady || Session::ready();
+        return self::$sessionReady;
+    }
+
+    /**
      * updates session data (when available) with current mode
      */
-    public static function updateSession(): void
+    protected static function updateSession(): void
     {
         if (self::$sessionReady) {
             Session::set(self::SESSION_SWITCH, Cast::dmvl(self::$mode, self::MODE_ON, self::MODE_OFF));
@@ -395,6 +396,11 @@ class Debug
     public static function setErrorLevel($level): void
     {
         Handler::enabledErrorLevel($level);
+    }
+
+    public static function middlewareCallback(object|array $request): void
+    {
+        Handler::middlewareHook($request);
     }
 
     public static function out(string $message, ?string $level = self::LEVEL_ERROR): void 
