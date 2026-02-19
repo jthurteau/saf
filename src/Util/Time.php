@@ -408,6 +408,9 @@ class Time
         if ($time === '') {
             return null;
         } elseif (is_numeric($time)) {
+            if (!self::isDeltaTime($time)) {
+                return intval($time);
+            }
             return ($insulated ? self::time() : time()) + intval($time);
         } else {
             $interpreted = strtotime($time, $insulated ? self::time() : time());
@@ -429,6 +432,15 @@ class Time
                 || preg_match(self::NUMBER_PATTERN_INF, (string)$time)
             );
         //#TODO #2.0.0 does not factor in max int size
+    }
+
+    /**
+     * detects strings that are non-strtotime() deltas
+     */
+    public static function isDeltaTime(string $string): bool
+    {
+        $string = ltrim($string);
+        return str_starts_with($string, '+') || str_starts_with($string, '-');
     }
     
     /**
