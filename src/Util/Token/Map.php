@@ -242,7 +242,7 @@ trait Map
      * if and array is passed, the results are indexed by the provided indexes
      */
     public function getData(
-        string|int|array|\Traversable $zones, 
+        int|string|array|\Traversable $zones, 
         ?string $field = null, 
         null|array|\Traversable $data = null
     ): mixed {
@@ -335,18 +335,18 @@ trait Map
      * returns only the matching data field if provided, otherwise returns an array of all data
      * for the matching node
      */
-    public function dataFor(string|int $id, ?string $field = null, null|array|\Traversable $data = null): mixed
+    public function dataFor(int|string $id, ?string $field = null, null|array|\Traversable $data = null): mixed
     { //#TODO support link lookup (detect linkDelimString|DEFAULT_LINK_DELIM)
         $match = 
-            is_int($id) 
-            ? $this->idSearch($id, $data) 
+            is_int($id) || is_numeric($id)
+            ? $this->idSearch((int) $id, $data) 
             : (
                 $this->isLink($id)
                 ? $this->linkSearch($id, $data)
                 : $this->aliasSearch($id, $data)
             );
             $data = $match ? $this->data(self::ALL_DATA, $match) : null;
-        return $field ? (key_exists($field, $data) ? $data[$field] : null) : $data;
+        return $field ? (is_array($data) && key_exists($field, $data) ? $data[$field] : null) : $data;
     }
 
     /**
@@ -374,8 +374,8 @@ trait Map
         is_null($data) && ($data = $this->getMap());
         foreach(Hash::coerce($nodes) as $identifier) {
             $alias = 
-                is_int($identifier) 
-                ? $this->getAlias($identifier)
+                is_int($identifier) || is_numeric($identifier)
+                ? $this->getAlias((int) $identifier)
                 : $identifier; //#TODO handle links
             if (is_string($identifier)) {
                 $list = array_merge($list, [$alias], listSub($alias, $data));
