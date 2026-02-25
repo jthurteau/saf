@@ -378,7 +378,7 @@ trait Map
                 ? $this->getAlias((int) $identifier)
                 : $identifier; //#TODO handle links
             if (is_string($identifier)) {
-                $list = array_merge($list, [$alias], listSub($alias, $data));
+                $list = array_merge($list, [$alias], $this->listSub($alias, $data));
             }
         }
         return array_unique($list);
