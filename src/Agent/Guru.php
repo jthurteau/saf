@@ -14,9 +14,9 @@ use Saf\Agent;
 use Saf\Auto;
 use Saf\Agent\Meditation;
 
-require_once(dirname(__DIR__).'/Agent.php');
-require_once(dirname(__DIR__).'/Auto.php');
-require_once(__DIR__.'/Meditation.php');
+require_once(dirname(__DIR__) . '/Agent.php');
+require_once(dirname(__DIR__) . '/Auto.php');
+require_once(__DIR__ . '/Meditation.php');
 
 trait Guru {
     /**

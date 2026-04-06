@@ -14,9 +14,9 @@ use Saf\Agent;
 use Saf\Environment;
 use Saf\Preboot;
 
-require_once(__DIR__.'/Agent.php');
-require_once(__DIR__.'/Environment.php');
-require_once(__DIR__.'/Preboot.php');
+require_once(__DIR__ . '/Agent.php');
+require_once(__DIR__ . '/Environment.php');
+require_once(__DIR__ . '/Preboot.php');
 
 class Kickstart
 {

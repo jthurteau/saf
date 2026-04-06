@@ -78,7 +78,7 @@ class Audit
 					self::$db->getSchemaName(), 
 					self::$path ]
 				);
-                Debug::out("Auditing to {$location}");
+                Debug::out("Auditing to {$location}", Debug::LEVEL_STATUS);
             }
         }
     }

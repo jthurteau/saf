@@ -20,11 +20,11 @@ use Saf\Util\Debug\Ui;
 //#TODO patch into Saf\Meditation;
 use Saf\Meditation\Configuration as ConfigurationMeditation;
 
-require_once(__DIR__.'/Session.php');
-require_once(__DIR__.'/Util/Debug/Handler.php');
-require_once(__DIR__.'/Util/Debug/Analysis.php');
-require_once(__DIR__.'/Util/Debug/Ui.php');
-require_once(__DIR__.'/Meditation/Configuration.php');
+require_once(__DIR__ . '/Session.php');
+require_once(__DIR__ . '/Util/Debug/Handler.php');
+require_once(__DIR__ . '/Util/Debug/Analysis.php');
+require_once(__DIR__ . '/Util/Debug/Ui.php');
+require_once(__DIR__ . '/Meditation/Configuration.php');
 
 class Debug
 {
@@ -461,37 +461,38 @@ class Debug
      * @param bool $wrapped bool
      * @return array
      */
-    public static function getTrace(bool|int $wrapped = true): array
+    public static function getTrace(null|true|int $wrapped = true): array
     {
-        is_bool($wrapped) && ($wrapped = $wrapped ? 1 : 0);
-        try {
-            throw new \Exception('debug');
-        } catch (\Exception $e) {
-            $trace = $e->getTrace();
+        $wrapped === true && ($wrapped = $wrapped ? 1 : 0);
+        // try {
+        //     throw new \Exception('debug');
+        // } catch (\Exception $e) {
+            $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT); //$e->getTrace();
             while($wrapped-- > 0) { #NOTE removes this(debug) object/method from the stack
                 array_shift($trace);
             }
             return $trace;
-        }
+        // }
     }
 
-    public static function getTraceString(bool|int $wrapped = true): string
+    public static function getTraceString(null|true|int $wrapped = true): string
     {
-        is_bool($wrapped) && ($wrapped = $wrapped ? 1 : 0);
-        try { //#TODO it looks like there is a better way https://www.php.net/manual/en/function.debug-backtrace.php
-            throw new \Exception('debug');
-        } catch (\Exception $e) {
-            $trace = explode(PHP_EOL, $e->getTraceAsString());
-            while(0 < $wrapped--) { #NOTE removes this(debug) object/method from the stack
-                array_shift($trace);
-            }
-            foreach($trace as $number => $line) {
-                $parts = explode(' ', $line, 2);
-                $parts[0] = '#' . (string)((int)substr($parts[0],1) - 1);
-                $trace[$number] = implode(' ', $parts);
-            }
-            return implode(PHP_EOL, $trace);
+        $wrapped === true && ($wrapped = $wrapped ? 1 : 0);
+        // try { //#TODO it looks like there is a better way https://www.php.net/manual/en/function.debug-backtrace.php
+        //     throw new \Exception('debug');
+        // } catch (\Exception $e) {
+        $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT); //explode(PHP_EOL, $e->getTraceAsString());
+        while(0 < $wrapped--) { #NOTE removes this(debug) object/method from the stack
+            array_shift($trace);
         }
+        return Analysis::renderTrace($line);
+        // foreach($trace as $number => $line) {
+        //     // $parts = explode(' ', $line, 2);
+        //     // $parts[0] = '#' . (string)((int)substr($parts[0],1) - 1);
+        //     $trace[$number] = "#{$number} " . Analysis::renderTraceLine($line);//implode(' ', $parts);
+        // }
+        // return implode(PHP_EOL, $trace);
+        // }
     }
 
     protected static function currentTraceString(?string $behavior = self::TRACE_SHALLOW): string

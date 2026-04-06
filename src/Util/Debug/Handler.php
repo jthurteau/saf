@@ -26,7 +26,7 @@ class Handler
     public const array FOOTPRINT_FN_CALLER = ['file', 'line', 'args', 'function'];
     public const array FOOTPRINT_FUNCTION = ['file', 'line', 'function', 'args'];
     public const array FOOTRPRINT_NATIVE_METHOD = ['function', 'class', 'type', 'args'];
-
+    public const int MAX_MEMORY = 10;
     public const array ERROR_LEVELS = [
         1 => 'E_ERROR',
         2 => 'E_WARNING',
@@ -113,6 +113,11 @@ class Handler
      * the error_level setting originally detected upon init
      */
     protected static ?int $defaultErrorLevel = null;
+
+    /**
+     * memory for debug output
+     */
+    protected static array $memory = [];
 
     public static function init()
     {
@@ -352,6 +357,8 @@ class Handler
 
     public static function out(string $level, string $message, ?array $trace = null)
     {
+        $level != Debug::LEVEL_PROFILE 
+            && self::remember($trace ? [$message, $level,  $trace]: [$message, $level]);
         if (self::$plugin && method_exists(self::$plugin, 'out')){
             self::$plugin->out($level,$message, $trace);
         }
@@ -360,6 +367,8 @@ class Handler
 
     public static function outRaw(string $message, ?bool $preformat = true)
     {
+        $level != Debug::LEVEL_PROFILE 
+            && self::remember([$message]);
         if (self::$plugin && method_exists(self::$plugin, 'outRaw')){
             self::$plugin->outRaw($message, $preformat);
         }
@@ -368,6 +377,8 @@ class Handler
 
     public static function outData(string $level, mixed $message, ?array $trace = null)
     {
+        $level != Debug::LEVEL_PROFILE 
+            && self::remember($trace ? [$message, $level,  $trace]: [$message, $level]);
         if (self::$plugin && method_exists(self::$plugin, 'outData')){
             self::$plugin->outData($level,$message, $trace);
         }
@@ -376,6 +387,8 @@ class Handler
 
     public static function outRawData(mixed $message,  ?bool $preformat = true)
     {
+        $level != Debug::LEVEL_PROFILE 
+            && self::remember([$message, $trace]);
         if (self::$plugin && method_exists(self::$plugin, 'outRawData')){
             self::$plugin->outRawData($message, $preformat);
         }
@@ -384,9 +397,34 @@ class Handler
 
     protected static function chain(?\Throwable $e): array
     {
-        return $e ?[
-            "{$e->getFile()}({$e->getLine()})", $e->getMessage(),  $e->getTraceAsString(), self::chain($e->getPrevious())
-        ] : [];
+        return $e 
+            ? [
+                "{$e->getFile()}({$e->getLine()})", $e->getMessage(),  $e->getTraceAsString(), self::chain($e->getPrevious())
+            ] : [];
+    }
+    
+    /**
+     * push new data to the end of memory, and return its index.
+     * only stores while Debug is enabled.
+     * if memory is full, first unset the first element. 
+     */
+    protected static function remember(array $data): ?int
+    {
+        if (Debug::isEnabled()) {
+            if (count(self::$memory) >= self::MAX_MEMORY) {
+                unset(self::$memory[array_key_first(self::$memory)]);
+            }
+            self::$memory[] = $data;
+        }
+        return array_key_last(self::$memory);
+    }
+
+    /**
+     * returns a copy of the current memory
+     */
+    public static function getMemory(): array
+    {
+        return self::$memory;
     }
 
     public static function dieSafe($message = '')

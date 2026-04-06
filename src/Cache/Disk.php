@@ -212,9 +212,9 @@ class Disk implements Strategy{
 
     public static function save(string $facet, mixed $data, mixed $spec = self::DEFAULT_SAVE_SPEC): bool
     {
-        if (is_null($spec) || ! $spec || $spec != self::DEFAULT_SAVE_SPEC) {
-            \Saf\Debug::outData([__CLASS__, 'using custom save spec', __FILE__,__LINE__,$facet, $spec]);
-        }
+        // if (is_null($spec) || ! $spec || $spec != self::DEFAULT_SAVE_SPEC) {
+        //     \Saf\Debug::outData([__CLASS__, 'using custom save spec', __FILE__,__LINE__,$facet, $spec]);
+        // }
         //#TODO accept path override from $spec;
         $timestampMode = 
             is_array($spec) && key_exists(Cache::CONFIG_STAMP_MODE, $spec) 

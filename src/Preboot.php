@@ -16,10 +16,10 @@ use Saf\Resolver;
 use Saf\Agent;
 use Saf\Environment;
 
-require_once(__DIR__.'/Auto.php');
-require_once(__DIR__.'/Resolver.php');
-require_once(__DIR__.'/Agent.php');
-require_once(__DIR__.'/Environment.php');
+require_once(__DIR__ . '/Auto.php');
+require_once(__DIR__ . '/Resolver.php');
+require_once(__DIR__ . '/Agent.php');
+require_once(__DIR__ . '/Environment.php');
 
 class Preboot
 {

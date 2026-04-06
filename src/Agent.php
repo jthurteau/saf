@@ -16,11 +16,11 @@ use Saf\Environment\Access as Environment;
 use Saf\Framework\Modes;
 use Saf\Debug;
 
-require_once(__DIR__.'/Agent/Guru.php');
-require_once(__DIR__.'/Agent/Identity.php');
-require_once(__DIR__.'/Environment/Access.php');
-require_once(__DIR__.'/Framework/Modes.php');
-require_once(__DIR__.'/Debug.php');
+require_once(__DIR__ . '/Agent/Guru.php');
+require_once(__DIR__ . '/Agent/Identity.php');
+require_once(__DIR__ . '/Environment/Access.php');
+require_once(__DIR__ . '/Framework/Modes.php');
+require_once(__DIR__ . '/Debug.php');
 
 class Agent implements \ArrayAccess {
     use Guru;

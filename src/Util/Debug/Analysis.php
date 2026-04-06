@@ -150,6 +150,9 @@ class Analysis //#TODO implement as trait?
         return $out;
     }
 
+    /**
+     * renders a debug_backtrace() or Throwable's getTrace() as a journaled multi-line string
+     */
     public static function renderTrace(array|\Throwable $trace, ?string $behavior = Debug::TRACE_DIGEST): string
     {
         if (is_a($trace, \Throwable::class)) {
@@ -159,27 +162,36 @@ class Analysis //#TODO implement as trait?
         $out = '';
         $count = count($trace);
         foreach($trace as $index => $point) {
-            Debug::audit($point);
-            $line =
-                key_exists('file', $point)
-                ? "{$point['file']}({$point['line']})"
-                : '';
-            $context = 
-                key_exists('function', $point)
-                ? (
-                    ': '
-                    . (key_exists('class', $point) ? "{$point['class']}{$point['type']}" : '')
-                    . "{$point['function']}"
-                ) : '';
-            $argCount = key_exists('args', $point) && $point['args'] ? count($point['args']) : 0;
-            $env =
-                key_exists('args', $point) && $behavior != Debug::TRACE_BARE
-                ? ('(' . self::renderArgList($point['args'], $behavior) . ')')
-                : ($argCount ? "(...[{$argCount}])" : '()');
-            $out .= "#{$index} {$line}{$context}{$env}{$standardEol}";
+            //Debug::audit($point);
+            $out .= self::renderTraceLine($point, $behavior);
         }
         $out .= "#{$count} {main} {$standardEol}";
         return $out;
+    }
+
+    /**
+     * renders a single entry (array) from a debug_backtrace() or Throwable's getTrace() as a journaled string
+     */
+    public static function renderTraceLine(array $point, ?string $behavior = Debug::TRACE_DIGEST): string
+    {
+        $standardEol = "\n";
+        $line =
+            key_exists('file', $point)
+            ? "{$point['file']}({$point['line']})"
+            : '';
+        $context = 
+            key_exists('function', $point)
+            ? (
+                ': '
+                . (key_exists('class', $point) ? "{$point['class']}{$point['type']}" : '')
+                . "{$point['function']}"
+            ) : '';
+        $argCount = key_exists('args', $point) && $point['args'] ? count($point['args']) : 0;
+        $env =
+            key_exists('args', $point) && $behavior != Debug::TRACE_BARE
+            ? ('(' . self::renderArgList($point['args'], $behavior) . ')')
+            : ($argCount ? "(...[{$argCount}])" : '()');
+        return "#{$index} {$line}{$context}{$env}{$standardEol}";
     }
 
     public static function renderArg(mixed $value, string $behavior = Debug::TRACE_DIGEST): string

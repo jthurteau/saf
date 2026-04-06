@@ -236,7 +236,7 @@ return function &(array|ArrayAccess &$canister = []) : array|ArrayAccess {
         $failMessage = str_replace('{$}', $name, $fail);
 ?>
     <div class="safVentError">
-        <span class="location"><?php print(__FILE__. '  :' . __LINE__); ?></span> 
+        <span class="location"><?php print(__FILE__ . '  :' . __LINE__); ?></span> 
         <span class="message"><?php print($failMessage); ?></span>
     </div>
 <?php

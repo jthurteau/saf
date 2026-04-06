@@ -25,7 +25,7 @@ class Profile
         $notice = self::generateNotice();
         $message =  $notice . Debug::introspectData($data);
         Debug::out($message, Debug::LEVEL_PROFILE);
-        $tag && self::tag($tag, 'ping');
+        $tag && self::tag($tag, 'ping', $data);
     }
 
     public static function in(string|array $tag): void
@@ -46,12 +46,18 @@ class Profile
         $tag && self::tag($tag, 'out');
     }
 
-    protected static function tag(string|array $tags, string $type)
+    protected static function tag(string|array|\Traversable $tags, string $type, ?array $data = null): float
     {
-        $tags = is_array($tags) ? $tags : [$tags];
-        foreach($tags as $currentTag) {
-            // #TODO store
+        $momento = is_null($data) ? [$type] : [$type => $data];
+        $time = self::getRunTime();
+        $stringTime = (string)$time;
+        foreach(is_array($tags) ? $tags : [$tags] as $currentTag) {
+            key_exists($currentTag, self::$taggedSteps) || (self::$taggedSteps[$currentTag] = []);
+            key_exists($stringTime, self::$taggedSteps[$currentTag])
+                ? (self::$taggedSteps[$currentTag][$stringTime][] = $momento) 
+                : (self::$taggedSteps[$currentTag][$stringTime] = [$momento]);
         }
+        return $time;
     }
 
     public static function getStartTime(): float
@@ -59,14 +65,27 @@ class Profile
         return self::init() ?? self::$microStartTime;
     }
 
-    public static function getRunTime():float
+    public static function getRunTime(): float
     {
         return microtime(true) - self::getStartTime();
     }
 
-    public static function getTags(): array
+    /**
+     * return a list of matching tagged steps, or all
+     */
+    public static function getTags(null|string|array|\Traversable $tags = null): array
     {
-        return self::$taggedSteps;
+        return 
+            is_null($tags) 
+            ? self::$taggedSteps 
+            : (function($t) {
+                    $selected = [];
+                    foreach(is_string($t) ? [$t] : $t as $v) {
+                        key_exists($v, self::self::$taggedSteps) && ($selected[] = $v);
+                    }
+                    return $selected;
+                }
+            )($tags);
     }
 
     public static function commitTags(): bool

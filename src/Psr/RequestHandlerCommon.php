@@ -271,6 +271,29 @@ trait RequestHandlerCommon {
      */
     protected function &postProcess(array|ArrayAccess &$result, ?ServerRequestInterface $request = null) : array
     {
+        $params = $request?->getQueryParams() ?: [];
+        $requestedDebug = 
+            \Saf\Debug::isEnabled() 
+            && (
+                key_exists('debug', $params) 
+                || key_exists('debugTransaction', $params)
+            );
+        $requestedProfile = 
+            \Saf\Debug::isEnabled() 
+            && (
+                key_exists('profile', $params) 
+                || key_exists('profileTransaction', $params)
+            );
+        if ($requestedDebug && class_exists('\Saf\Util\Debug\Handler', false)) {
+            $result += ['debug' => \Saf\Util\Debug\Handler::getMemory()];
+        }
+        if ($requestedProfile && class_exists('\Saf\Util\Profile', false)) {
+            $result += ['profile' => [
+                'start' => \Saf\Util\Profile::getStartTime(),
+                'tags' => \Saf\Util\Profile::getTags($params['profileTransaction'] ?: null),
+                'binding' => \Saf\Util\Profile::getRunTime(), // #TODO detect this on final output and add 'end'
+            ]];
+        }
         Time::getOffset() && ($result['safTimeOffset'] = Time::getOffset());
         return $result;
     }
