@@ -163,7 +163,7 @@ class Analysis //#TODO implement as trait?
         $count = count($trace);
         foreach($trace as $index => $point) {
             //Debug::audit($point);
-            $out .= self::renderTraceLine($point, $behavior);
+            $out .= "#{$index} " . self::renderTraceLine($point, $behavior);
         }
         $out .= "#{$count} {main} {$standardEol}";
         return $out;
@@ -191,7 +191,7 @@ class Analysis //#TODO implement as trait?
             key_exists('args', $point) && $behavior != Debug::TRACE_BARE
             ? ('(' . self::renderArgList($point['args'], $behavior) . ')')
             : ($argCount ? "(...[{$argCount}])" : '()');
-        return "#{$index} {$line}{$context}{$env}{$standardEol}";
+        return "{$line}{$context}{$env}{$standardEol}";
     }
 
     public static function renderArg(mixed $value, string $behavior = Debug::TRACE_DIGEST): string

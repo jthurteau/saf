@@ -367,8 +367,7 @@ class Handler
 
     public static function outRaw(string $message, ?bool $preformat = true)
     {
-        $level != Debug::LEVEL_PROFILE 
-            && self::remember([$message]);
+        self::remember([$message]);
         if (self::$plugin && method_exists(self::$plugin, 'outRaw')){
             self::$plugin->outRaw($message, $preformat);
         }
@@ -387,8 +386,7 @@ class Handler
 
     public static function outRawData(mixed $message,  ?bool $preformat = true)
     {
-        $level != Debug::LEVEL_PROFILE 
-            && self::remember([$message, $trace]);
+        self::remember([$message, $trace]);
         if (self::$plugin && method_exists(self::$plugin, 'outRawData')){
             self::$plugin->outRawData($message, $preformat);
         }

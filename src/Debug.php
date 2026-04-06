@@ -455,44 +455,33 @@ class Debug
 
     #TODO delegate trace/caller features to \Saf\Util\Debug\Trace
     /**
-     * generates a stack trace, if wrapped is set and >0 that many levels are trimmed
-     * from the top of the stack.
+     * generates a stack trace (array data format), 
+     * if wrapped is set and >0 that many levels are trimmed from the top of the stack.
      * By default (true/1) are removed the reflect the stack at the point of the caller.
-     * @param bool $wrapped bool
-     * @return array
      */
     public static function getTrace(null|true|int $wrapped = true): array
     {
         $wrapped === true && ($wrapped = $wrapped ? 1 : 0);
-        // try {
-        //     throw new \Exception('debug');
-        // } catch (\Exception $e) {
-            $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT); //$e->getTrace();
-            while($wrapped-- > 0) { #NOTE removes this(debug) object/method from the stack
-                array_shift($trace);
-            }
-            return $trace;
-        // }
-    }
-
-    public static function getTraceString(null|true|int $wrapped = true): string
-    {
-        $wrapped === true && ($wrapped = $wrapped ? 1 : 0);
-        // try { //#TODO it looks like there is a better way https://www.php.net/manual/en/function.debug-backtrace.php
-        //     throw new \Exception('debug');
-        // } catch (\Exception $e) {
-        $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT); //explode(PHP_EOL, $e->getTraceAsString());
-        while(0 < $wrapped--) { #NOTE removes this(debug) object/method from the stack
+        $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT); //$e->getTrace();
+        while($wrapped-- > 0) { #NOTE removes $this::getTrace() object/method from the stack
             array_shift($trace);
         }
-        return Analysis::renderTrace($line);
-        // foreach($trace as $number => $line) {
-        //     // $parts = explode(' ', $line, 2);
-        //     // $parts[0] = '#' . (string)((int)substr($parts[0],1) - 1);
-        //     $trace[$number] = "#{$number} " . Analysis::renderTraceLine($line);//implode(' ', $parts);
+        return $trace;
+    }
+
+    /**
+     * generats a stack trace, as a multiline string,
+     * if wrapped is set and >0 that many levels are trimmed from the top of the stack.
+     * By default (true/1) are removed the reflect the stack at the point of the caller.
+     */
+    public static function getTraceString(null|true|int $wrapped = true): string
+    {
+        // $wrapped === true && ($wrapped = $wrapped ? 1 : 0);
+        // $trace = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT);
+        // while(0 < $wrapped--) { #NOTE removes $this::getTraceString() object/method from the stack
+        //     array_shift($trace);
         // }
-        // return implode(PHP_EOL, $trace);
-        // }
+        return Analysis::renderTrace(self::getTrace(1 + is_int($wrapped) ? $wrapped : 0));
     }
 
     protected static function currentTraceString(?string $behavior = self::TRACE_SHALLOW): string
