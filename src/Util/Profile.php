@@ -14,7 +14,7 @@ require_once(dirname(__DIR__) . '/Debug.php');
 
 class Profile
 {
-    protected static ?int $microStartTime = null;
+    protected static ?float $microStartTime = null;
     protected static ?string $timeSource = null;
     protected static array $taggedSteps = [];
 
@@ -163,16 +163,17 @@ class Profile
      */
     protected static function init(): ?float
     {
+        //#TODO test mid-kick fail debugging by throwing here
         if (!is_null(self::$microStartTime)) {
             return self::$microStartTime;
         }
         // if callable($callable) ...
         if (defined('\\DEBUG_START_TIME')) {
-            self::$microStartTime = (int) \DEBUG_START_TIME;
+            self::$microStartTime = (float) \DEBUG_START_TIME;
             self::$timeSource = 'debug';
             return self::$microStartTime;
         } elseif (defined('\\Saf\\APPLICATION_START_TIME')) {
-            self::$microStartTime = (int) \Saf\APPLICATION_START_TIME;
+            self::$microStartTime = (float) \Saf\APPLICATION_START_TIME;
             self::$timeSource = 'saf_app';
             return self::$microStartTime;
         }
