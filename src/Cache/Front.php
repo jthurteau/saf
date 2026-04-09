@@ -89,17 +89,17 @@ abstract class Front implements Cachable {
                 $diskSpec = $defaultDiskSpec ?: [];
             }
             \Saf\Util\Profile::ping(['cache status check', self::class, $name, $arguments, $this->cacheOnlyMode()]);
-            $this->cacheOnlyMode() && (\Saf\Util\Profile::ping(['cache only', $name, self::class]));
+            $this->cacheOnlyMode() && (\Saf\Util\Profile::ping(['cache only', $name]));
             $diskLoadConfig = $this->cacheOnlyMode() ? $forceLoadConfig : $diskSpec; #TODO AGE, FUZZY
             $disk = $diskFacet ? Disk::load($diskFacet, $diskLoadConfig + Disk::DEFAULT_LOAD_SPEC) : null;
 //            \Saf\Debug::outData(['diskF' => $diskFacet, 'diskD' => $disk, 'diskP' => Disk::getFullPath($diskFacet) ,$diskLoadConfig, $diskLoadConfig + Disk::DEFAULT_LOAD_SPEC]);
             if (!is_null($disk)) {
                 $this->lastCached = self::DISK_CACHE_CLASS . "::{$name}";
                 $memoryIndex ? Memory::save($memoryIndex, $disk) : $this->sideLoad($disk, $name, $arguments);
-                \Saf\Util\Profile::ping(['cached call from disk', self::class, $name, $arguments]);
+                \Saf\Util\Profile::ping(['cached call from disk', self::class, $name, $arguments], __METHOD__);
                 return is_callable($disk) ? $disk(...$arguments) : $disk;
             } elseif ($this->cacheOnlyMode()) {
-                \Saf\Util\Profile::ping(['forced to make uncached call because of no stored data', self::class, $name, $diskFacet, $arguments,$diskLoadConfig + Disk::DEFAULT_LOAD_SPEC]);
+                \Saf\Util\Profile::ping(['forced to make uncached call because of no stored data', self::class, $name, $diskFacet, $arguments,$diskLoadConfig + Disk::DEFAULT_LOAD_SPEC], __METHOD__);
             }
             $profileTime2 = microtime(true);
             try {
@@ -110,7 +110,7 @@ abstract class Front implements Cachable {
                 if ($this->allowCacheFailover($name, $arguments) && $diskFacet) {
                     $diskFailover = Disk::load($diskFacet, $forceLoadConfig); // #TODO this can be optimized buy letting the front accept expired data and informing it...
                     if ($diskFailover) {
-                        \Saf\Util\Profile::ping(['failover call', self::class, $name, $arguments, $e::class,$e->getMessage(), $e->getFile(), $e->getLine(),]);
+                        \Saf\Util\Profile::ping(['failover call', self::class, $name, $arguments, $e::class,$e->getMessage(), $e->getFile(), $e->getLine(),], __METHOD__);
                         //Audit::save('api failover',[$this->proxy::class, $name]);
                         return $diskFailover;
                     }
@@ -124,7 +124,7 @@ abstract class Front implements Cachable {
             $diskFacet && Disk::canStore($remote)
                 && Disk::save($diskFacet, $remote, $diskSaveConfig + Disk::DEFAULT_SAVE_SPEC);
             $memoryIndex && Memory::save($memoryIndex, $remote);
-            \Saf\Util\Profile::ping(['uncached call', self::class, $name, $arguments, $pregate, $postgate]);
+            \Saf\Util\Profile::ping(['uncached call', self::class, $name, $arguments, $pregate, $postgate], __METHOD__);
             return $remote;
         } else {
             $class = get_class($this->proxy);

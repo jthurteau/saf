@@ -45,7 +45,7 @@ class FoundationMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler) : ResponseInterface
     {
 
-        \Saf\Util\Profile::ping('foundation pipeline entered');
+        \Saf\Util\Profile::ping('foundation pipeline entered', __METHOD__);
         Debug::sessionReadyListner(); // auth is before this section of the pipe and that seems to be what starts the session,
         Debug::isEnabled() && Debug::middlewareCallback($request);
         try {
@@ -63,7 +63,7 @@ class FoundationMiddleware implements MiddlewareInterface
                 ->withAttribute('redirectMethod', $r->isAutomatic() ? Redirect::METHOD_HEADER : Redirect::METHOD_BODY);
             return (new RedirectHandler(self::$renderer))->handle($redirected);
         } catch (\Error | \Exception $e) {
-            \Saf\Util\Profile::ping('foundation pipeline caught throwable: ' . $e::class . ' ' . $e->getMessage());
+            \Saf\Util\Profile::ping('foundation pipeline caught throwable: ' . $e::class . ' ' . $e->getMessage(), __METHOD__);
             if (true) {
                 $caught = $request->withAttribute('throwable', $e);
                 return (new ExceptionHandler(self::$renderer))->handle($caught);

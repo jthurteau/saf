@@ -13,10 +13,12 @@ namespace Saf;
 use Saf\Agent;
 use Saf\Environment;
 use Saf\Preboot;
+use Saf\Util\Profile;
 
 require_once(__DIR__ . '/Agent.php');
 require_once(__DIR__ . '/Environment.php');
 require_once(__DIR__ . '/Preboot.php');
+require_once(__DIR__ . '/Util/Profile.php');
 
 class Kickstart
 {
@@ -165,6 +167,7 @@ class Kickstart
      */
     public static function go(array|\ArrayAccess &$options = []): mixed
     {
+        Profile::ping('kick off', __METHOD__);
         return self::kick(self::lace(null, $options));
     }
 

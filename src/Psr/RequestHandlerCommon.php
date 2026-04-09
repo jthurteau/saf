@@ -290,11 +290,12 @@ trait RequestHandlerCommon {
         if ($requestedProfile && class_exists('\Saf\Util\Profile', false)) {
             $result += ['profile' => [
                 'start' => \Saf\Util\Profile::getStartTime(),
-                'tags' => \Saf\Util\Profile::getTags($params['profileTransaction'] ?: null),
+                'points' => \Saf\Util\Profile::getTags($params['profileTransaction'] ?: null),
                 'binding' => \Saf\Util\Profile::getRunTime(), // #TODO detect this on final output and add 'end'
             ]];
         }
         Time::getOffset() && ($result['safTimeOffset'] = Time::getOffset());
+        Time::getOffset() && ($result['debugTime'] = Time::time());
         return $result;
     }
 }

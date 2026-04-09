@@ -96,7 +96,7 @@ class Disk implements Strategy{
         $path = self::getFullPath($facet);
         self::ensurePath(dirname($path));
         if(!self::fileAvailable($path)) {
-            \Saf\Util\Profile::ping(["disk cache file {$path} for {$facet} does not exist"]);
+            \Saf\Util\Profile::ping(["disk cache file {$path} for {$facet} does not exist"], __METHOD__);
             return $default;
         }
         $contents = File::getJson($path);
@@ -105,11 +105,11 @@ class Disk implements Strategy{
         //$payload || \Saf\Util\Profile::ping(["disk cache {$facet} expired timeout {$minDate}"]);
         if(!$valid) {
             if (!is_array($contents)) {
-                \Saf\Util\Profile::ping(['disk load invalidated, invalid file contents', $facet, $spec, $minDate, gettype($contents), $contents]);
+                \Saf\Util\Profile::ping(['disk load invalidated, invalid file contents', $facet, $spec, $minDate, gettype($contents), $contents], __METHOD__);
             } elseif (!key_exists('payload', $contents)) {
-                \Saf\Util\Profile::ping(['disk load invalidated, no payload', $facet, $spec, $minDate,$contents]);
+                \Saf\Util\Profile::ping(['disk load invalidated, no payload', $facet, $spec, $minDate, $contents], __METHOD__);
             } else {
-                \Saf\Util\Profile::ping(['disk load invalidated', $facet, $spec, $minDate]);
+                \Saf\Util\Profile::ping(['disk load invalidated', $facet, $spec, $minDate], __METHOD__);
             }
         }
         return $valid ? $payload : $default;
@@ -247,11 +247,7 @@ class Disk implements Strategy{
             return true;
         } else {
             \Saf\Debug::out("unable to save {$facet}");
-            \Saf\Util\Profile::ping([
-                "unable to save {$rawFacet}",
-                $facet,
-                $path,
-            ]);
+            \Saf\Util\Profile::ping(["unable to save {$rawFacet}", $facet, $path], __METHOD__);
         }
         return false;
     }
@@ -351,7 +347,9 @@ class Disk implements Strategy{
         return $payload;
     }
 
-    //#TODO implement forget()
+    /**
+     * remove a stored facet from disk
+     */
     public static function forget(string $facet): void
     {
         $path = self::getFullPath(self::fileSafeFacet($facet));
@@ -359,6 +357,10 @@ class Disk implements Strategy{
         $available && unlink($path);
     }
 
+    /**
+     * determines is $data can be stored (i.e. don't try to store callables).
+     * data that contains unstorable data is partially stored (so that returns true)
+     */
     public static function canStore(mixed $data): bool
     {
         return !is_callable($data);
@@ -369,11 +371,17 @@ class Disk implements Strategy{
         return $spec;
     }
 
+    /**
+     * required for Cache\Strategy
+     */
     public static function getDefaultLoadSpec(): mixed
     {
         return self::DEFAULT_LOAD_SPEC;
     }
 
+    /**
+     * required for Cache\Strategy
+     */
     public static function getDefaultSaveSpec(): mixed
     {
         return self::DEFAULT_SAVE_SPEC;

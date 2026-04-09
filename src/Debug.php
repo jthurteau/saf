@@ -423,9 +423,13 @@ class Debug
         Handler::outRawData($message, $preformat);
     }
 
-    public static function introspectData(mixed $message): string //#TODO consolidate with Hash:introspectData?
+    /**
+     * returns a string representation of the passed data delegated to Util\Debug\Analysis
+     * #TODO consolidate with Hash:introspectData?
+     */
+    public static function introspectData(mixed $data): string 
     {
-        return Analysis::data($message);
+        return Analysis::data($data);
     }
 
     public static function audit(array $point): void
