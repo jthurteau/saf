@@ -805,6 +805,9 @@ class Hash
         return $a[array_key_first($a)];
     }
 
+    /**
+     * narrow a list (array) down to a single (first) value
+     */
     public static function singleton(mixed $possibleArray, bool|int $aggressive = false): mixed
     {
         if (is_array($possibleArray)) {

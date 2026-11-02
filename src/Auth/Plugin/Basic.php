@@ -14,14 +14,14 @@ use Saf\Auth;
 
 class Basic extends Base {
 
-	protected $pluginName = 'Apache Basic Auth';
+	protected string $pluginName = 'Apache Basic Auth';
 
-	public function setUsername($username)
+	public function setUsername(string $username): void
 	{
 		$_SERVER['PHP_AUTH_USER'] = $username;
 	}
 
-	public function getProvidedUsername()
+	public function getProvidedUsername(): ?string
 	{
 		return 
 			key_exists('PHP_AUTH_USER', $_SERVER)
@@ -29,7 +29,7 @@ class Basic extends Base {
 			: null;
 	}
 
-	public function getUserInfo($what = null)
+	public function getUserInfo(?string $what = null): ?string
 	{
 		if (is_null($what)) {
 			return array(

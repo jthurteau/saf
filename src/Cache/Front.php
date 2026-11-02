@@ -179,6 +179,7 @@ abstract class Front implements Cachable {
     public function getCacheStrategy(string $storageMethod, string $name, $arguments = null): null|int|array
     {
         $proxy = $this->getProxy();
+        //#TODO if $proxy doesn't override this method it will loop indefinately..
         return $proxy?->getCacheStrategy($storageMethod, $name, $arguments);
     }
 

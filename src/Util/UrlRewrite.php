@@ -116,7 +116,7 @@ class UrlRewrite
 			? (
 				$userFriendly
 				? ('forwardUrl=' . urlencode($url))
-				: ('forwardCode=.' . urlencode(base64_encode($url)))
+				: ('forwardCode=.' . urlencode(str_replace('=', '-', base64_encode($url))))
 			) : '';
 	}
 	
@@ -131,7 +131,7 @@ class UrlRewrite
 		return
 			$userFriendly
 			? $url
-			: base64_decode(substr($url, 1));
+			: base64_decode(str_replace('-', '=', substr($url, 1))); //#TODO don't add the initial dot and use the whole string?
 	}
 
 	/**
@@ -153,7 +153,7 @@ class UrlRewrite
 	 * @return bool
 	 */
 	public static function isForwardCode($url){
-		$pattern = '/^[.][a-zA-Z0-9+\/=]{4,}[=]{0,2}$/';
+		$pattern = '/^[.][a-zA-Z0-9+\/]{4,}[-]{0,2}$/';
 		return preg_match($pattern, $url);
 	}
 

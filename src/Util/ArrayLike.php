@@ -18,11 +18,18 @@ require_once(dirname(__DIR__).'/Exception/NotAnArray.php');
 trait ArrayLike
 {
 
-    public static function traversable($maybeArray)
+    public static function traversable(mixed $maybe): bool
     {
         return
-            is_array($maybeArray)
-            || (is_object($maybeArray) && is_a($maybeArray, 'Traversable'));
+            is_array($maybe)
+            || (is_object($maybe) && is_a($maybe, 'Traversable'));
+    }
+
+    public static function arrayAccess(mixed $maybe): bool
+    {
+        return
+            is_array($maybe)
+            || (is_object($maybe) && is_a($maybe, 'ArrayAccess'));
     }
 
     /**

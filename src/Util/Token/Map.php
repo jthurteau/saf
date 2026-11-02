@@ -152,7 +152,8 @@ trait Map
         return 
             is_array($source) 
             ? $this->data(Token::DATA_ID, $source) 
-            : ($this->getData($source, Token::DATA_ID, $data)[Token::DATA_ID] ?: null);
+            //: ($this->getData($source, Token::DATA_ID, $data ?? $this->getMap())[Token::DATA_ID] ?: null);
+            : ($this->getData($source, Token::DATA_ID, $data ?? $this->getMap()) ?: null);
     }
 
     /**
@@ -250,13 +251,13 @@ trait Map
         foreach(Hash::coerce($zones) as $index => $zone) {
             $results[$index] = 
                 is_int($zone) || is_string($zone)
-                ? $this->dataFor($zone, $data)
+                ? $this->dataFor($zone, $field, $data)
                 : null;
             $alias = //#TODO get the full token instead and also tag with type...
                 is_string($zone) && !$this->isLink($zone)
                 ? $zone
                 : $this->getAlias($zone, $data);
-            if ($alias && !is_null($results[$index])) {
+            if (is_array($results[$index]) && $alias && !is_null($results[$index])) {
                 $results[$index][Token::ize(Token::TYPE_TAG, 'name', $this)] = $zone;
             }
         }

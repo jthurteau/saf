@@ -246,23 +246,26 @@ class Handler
         return false;
     }
 
-    public static function middlewareHook(object|array $request):void
+    public static function middlewareHook(object|array $request): void
     {
         $translatedTime = null;
         if(
             is_object($request) 
             && is_a($request, ServerRequestInterface::class)
         ) {
-            $timeOffset = $request->getAttribute('debugOffset', null);
-            if (!is_null($timeOffset)) {
-                $translatedTime =
-                    Time::isTimeStamp($timeOffset)
-                    ? $timeOffset
-                    : strtotime($timeOffset);
-            } else {
-                $get = $request->getQueryParams();
-                $translatedTime = Time::parse($get['debugTime'] ?? '');
-            }
+            $timeOffset = $request->getAttribute('debugTimeOffset', null);
+            $get = $request->getQueryParams();
+        } else {
+            $get = $request;
+        }
+        is_null($timeOffset) && ($timeOffset = $get['debugTimeOffset'] ?? null);
+        if (!is_null($timeOffset)) {
+            $translatedTime =
+                Time::isTimeStamp($timeOffset)
+                ? (abs($timeOffset) < Time::QUANT_DAY * 365 ? (time() + (int) $timeOffset) : $timeOffset)
+                : strtotime($timeOffset);
+        } else {
+            $translatedTime = Time::parse($get['debugTime'] ?? '');
         }
         !is_null($translatedTime) && Time::set($translatedTime);
     }

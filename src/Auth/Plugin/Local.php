@@ -14,11 +14,12 @@ use Saf\Auth;
 
 class Local extends Base{
 
-	protected $pluginName = 'Application Local Auth';
+	protected string $pluginName = 'Application Local Auth';
 
-	protected $publicName = 'Internal Auth';
+	protected string $publicName = 'Internal Auth';
 
-	public function auth(){
+	public function auth(): bool
+	{
 		$username = $this->getProvidedUsername();
 		if ($username) {
 			Auth::setStatus(true);
@@ -32,7 +33,7 @@ class Local extends Base{
 		return $this->getProvidedUsername();
 	}
 
-	public function logout()
+	public function logout(): bool
 	{
 		return true;
 	}
@@ -48,20 +49,20 @@ class Local extends Base{
 		return $this->$publicName;
 	}
 
-	public function getProvidedUsername()
+	public function getProvidedUsername(): ?string
 	{
 		return 
-			array_key_exists('username', $_SESSION)
+			key_exists('username', $_SESSION)
 			? trim($_SESSION['username'])
 			: null;
 	}
 
-	public function setUsername($username)
+	public function setUsername(string $username): void
 	{
 		$_SESSION['username'] = $username;
 	}
 
-	public function getUserInfo($what = null)
+	public function getUserInfo(?string $what = null): ?string
 	{
 		if (is_null($what)) {
 			return array(

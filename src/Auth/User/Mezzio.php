@@ -74,8 +74,11 @@ class Mezzio implements UserInterface, UserRepositoryInterface
         return $this->details;
     }
 
-    public function addDetails(string $name, $newDetails): Mezzio
+    public function addDetails(string $name, mixed $newDetails): Mezzio
     {
+        if (is_null($newDetails)) {
+            return $this;
+        }
         if (key_exists($name, $this->details)) {
             if (is_array($this->details[$name]) && is_array($newDetails)) {
                 $this->details[$name] = array_merge($this->details[$name], $newDetails);

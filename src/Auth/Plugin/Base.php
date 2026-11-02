@@ -15,10 +15,10 @@ use Saf\Debug;
 
 abstract class Base {
 
-	protected $pluginName = 'Undefined';
-	protected $config = [];
+	protected string $pluginName = 'Undefined';
+	protected array $config = [];
 
-	public function __construct($config = array())
+	public function __construct(?array $config = array())
 	{
 		$this->config = $config;
 		if (is_array($this->config) && key_exists('publicLabel', $this->config)) {
@@ -31,7 +31,7 @@ abstract class Base {
 		return $this->pluginName;
 	}	
     
-    public function auth()
+    public function auth(): bool
     {
 		if ($this->getProvidedUsername()) {
 			Auth::setStatus(true);
@@ -40,11 +40,11 @@ abstract class Base {
 		return false;
 	}
 
-	abstract public function setUsername($username);
+	abstract public function setUsername(string $username): void;
 
-	abstract public function getProvidedUsername();
+	abstract public function getProvidedUsername(): ?string;
 
-	abstract public function getUserInfo($what = null);
+	abstract public function getUserInfo(?string $what = null): ?string;
 
 	public function isLoggedIn()
 	{
@@ -52,7 +52,7 @@ abstract class Base {
 		return !is_null($username) && '' != trim($username);
 	}
 
-	public function logout()
+	public function logout(): bool
 	{
 		return false;
 	}
@@ -112,7 +112,7 @@ abstract class Base {
 		return true;
 	}
 
-    protected function succeed()
+    protected function succeed(): bool
 	{
 		return true;
 	}

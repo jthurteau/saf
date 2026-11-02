@@ -213,6 +213,7 @@ class Debug
 
     /**
      * @return bool is enabled (may be verbose or silenced)
+     * #TODO include $lowlevelDetection (bool, looks for global constant/env hints)
      */
     public static function isEnabled(): bool
     {

@@ -90,7 +90,7 @@ class Keys
     {
         $keyValue = trim((string)$keyValue);
         if (!is_null($name)) {
-            return key_exists($name,self::$serviceKeys)
+            return key_exists($name, self::$serviceKeys)
                 && trim(self::$serviceKeys[$name]) === $keyValue;
         }
         foreach(self::$serviceKeys as $key) {
@@ -121,6 +121,47 @@ class Keys
             }
         }
         return null;
+    }
+
+    public static function routeSuffixMatch(?array $route, ?array $options): ?string
+    {
+        foreach($options ?? [] as $key => $value) {
+            if (is_numeric($key)) {
+                $parts = explode('/', $value);
+                $index = count($parts);
+                $range = 0;
+            } else {
+                $parts = explode('/', $key);
+                $index = (int) $value;
+                $range = 0;
+            }
+            if (!$index) {
+                return null;
+            }
+            foreach ($parts as $currentIndex => $part) {
+                if ($currentIndex >= $index && $currentIndex <= $index + $range) {
+                    if ($currentIndex == count($route) - 1) {
+                        $suffix = key_exists($currentIndex, $route) ? $route[$currentIndex] : null;
+                        return self::validKey($suffix) ? $suffix : null;
+                    } else {
+                        continue;
+                    }
+                } elseif (
+                    key_exists($currentIndex, $route) 
+                    && self::stackMatch($part, $route[$currentIndex])
+                ) {
+                    continue;
+                } else {
+                    break;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static function stackMatch(string $pattern, string $test): bool
+    {
+        return $pattern === $test || $pattern == '.' || $pattern == '?';
     }
 
 }

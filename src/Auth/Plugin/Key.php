@@ -15,12 +15,12 @@ use Saf\Keys;
 
 class Key extends Base {
 
-	protected $pluginName = 'Application Key Auth';
-    protected $usernamePrefix = 'key:';
-    protected $keyField = Keys::DEFAULT_KEY_FIELD;
-    protected $persistKeys = false;
+	protected string $pluginName = 'Application Key Auth';
+    protected string $usernamePrefix = 'key:';
+    protected string $keyField = Keys::DEFAULT_KEY_FIELD;
+    protected bool $persistKeys = false;
 
-    public function __constructor($config)
+    public function __construct(?array $config = [])
     {
         if (key_exists('keyField', $config)) {
             Keys::setKeyField($config['keyField']);
@@ -28,7 +28,7 @@ class Key extends Base {
         if (key_exists('persistKeys', $config)) {
             $this->persistKeys = $config['persistKeys'];
         }
-        parent::__constructor($config);
+        parent::__construct($config);
     }
 
 	public function auth(?bool $setStatus = true): bool
@@ -48,7 +48,7 @@ class Key extends Base {
 		return false;
 	}
 
-	public function logout()
+	public function logout(): bool
 	{
         if (key_exists('keys', $_SESSION)) {
             unset($_SESSION['keys']);
@@ -61,7 +61,7 @@ class Key extends Base {
 		return $this->$pluginName;
 	}
 
-	public function getProvidedUsername()
+	public function getProvidedUsername(): ?string
 	{
 		return 
 			key_exists('username', $_SESSION)
@@ -69,7 +69,7 @@ class Key extends Base {
 			: null;
 	}
 
-	public function setUsername($username)
+	public function setUsername(string $username): void
 	{
 		$_SESSION['username'] = $username;
 	}
@@ -79,7 +79,8 @@ class Key extends Base {
 	// 	return '';
 	// }
 
-	public function getUserInfo($what = null){
+	public function getUserInfo(?string $what = null): ?string
+	{
 		if (is_null($what)) {
 			return array(
 				Auth::PLUGIN_INFO_USERNAME => $this->getProvidedUsername(),

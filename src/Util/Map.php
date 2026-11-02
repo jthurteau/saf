@@ -11,11 +11,12 @@
 namespace Saf\Util;
 
 use Saf\Hash;
+use Saf\Util\ArrayLike;
 //use Saf\Exception\NotAnArray;
 
 abstract class Map
 {
-    
+    use ArrayLike;
     //public static function coerce
     
     //public static function mapped returns is array|ArrayAccess

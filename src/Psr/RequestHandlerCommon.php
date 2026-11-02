@@ -15,8 +15,10 @@ use Saf\Psr\StandardRequestHandler;
 use Saf\Psr\Request\Parser\Common as Parser;
 use Saf\Keys;
 use Saf\Auto;
+use Saf\Debug;
 use Saf\Util\UrlRewrite;
 use Saf\Util\Time;
+use Saf\Util\Profile;
 use Saf\Auth\Access;
 
 trait RequestHandlerCommon {
@@ -29,6 +31,7 @@ trait RequestHandlerCommon {
     protected function allowed($resource, $user = null)
     {
         //#TODO patch in with configured routes
+        // #TODO #2.X.X check keys FIRST
         //$accessList = Hash::deepMerge($this->accessList,$globalAccess);
         $keys = $user ? $user->getDetail('keys') : [];
         $roles = $user ? $user->getRoles() : [];
@@ -51,7 +54,7 @@ trait RequestHandlerCommon {
             count($validKeys) > 0
             && $this->matchRoute($resource, Access::KEY_KEY)
         ) {
-            return Access::TYPE_KEY;
+            return Access::TYPE_KEY; // #any key
         }
         foreach($validKeys as $keyName=> $key) {
             if ($this->matchRoute($resource, $keyName)) {
@@ -273,13 +276,13 @@ trait RequestHandlerCommon {
     {
         $params = $request?->getQueryParams() ?: [];
         $requestedDebug = 
-            \Saf\Debug::isEnabled() 
+            Debug::isEnabled() 
             && (
                 key_exists('debug', $params) 
                 || key_exists('debugTransaction', $params)
             );
         $requestedProfile = 
-            \Saf\Debug::isEnabled() 
+            Debug::isEnabled() 
             && (
                 key_exists('profile', $params) 
                 || key_exists('profileTransaction', $params)
@@ -289,9 +292,9 @@ trait RequestHandlerCommon {
         }
         if ($requestedProfile && class_exists('\Saf\Util\Profile', false)) {
             $result += ['profile' => [
-                'start' => \Saf\Util\Profile::getStartTime(),
-                'points' => \Saf\Util\Profile::getTags($params['profileTransaction'] ?: null),
-                'binding' => \Saf\Util\Profile::getRunTime(), // #TODO detect this on final output and add 'end'
+                'start' => Profile::getStartTime(),
+                'points' => Profile::getTags($params['profileTransaction'] ?: null),
+                'binding' => Profile::getRunTime(), // #TODO detect this on final output and add 'end'
             ]];
         }
         Time::getOffset() && ($result['safTimeOffset'] = Time::getOffset());

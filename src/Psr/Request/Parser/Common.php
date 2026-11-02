@@ -225,15 +225,39 @@ trait Common
     }
 
     /**
-     * get (take) the first element from the resource stack
+     * get the first element from the resource stack
      */
     public static function shiftResource(ServerRequestInterface $request): ?string
     {
         $resourceStack = self::getResourceStack($request);
-        $first = array_shift($resourceStack);
-        $request = self::updateRequestStack($request, $resourceStack);
-        return $first; //#TODO verify this handles the object/reference as intended
-        //#TODO it does NOT
+        return array_shift($resourceStack);
+    }
+
+    /**
+     * take the first element off the resource stack
+     */
+    public static function beheadResource(ServerRequestInterface $request): ServerRequestInterface
+    {
+        $resourceStack = self::getResourceStack($request);
+        return self::updateRequestStack($request, array_shift($resourceStack));
+    }
+
+    /**
+     * get the last element from the resource stack
+     */
+    public static function popResource(ServerRequestInterface $request): ?string
+    {
+        $resourceStack = self::getResourceStack($request);
+        return array_pop($resourceStack);
+    }
+
+    /**
+     * take the last element off the resource stack
+     */
+    public static function untailResource(ServerRequestInterface $request): ServerRequestInterface
+    {
+        $resourceStack = self::getResourceStack($request);
+        return self::updateRequestStack($request, array_pop($resourceStack));
     }
 
     /**
