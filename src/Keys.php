@@ -123,22 +123,28 @@ class Keys
         return null;
     }
 
+    /**
+     * parse the options for this route to see where keys may appear 
+     * and return the first valid match
+     */
     public static function routeSuffixMatch(?array $route, ?array $options): ?string
     {
         foreach($options ?? [] as $key => $value) {
-            if (is_numeric($key)) {
+            if (is_numeric($key) && is_string($value)) {
                 $parts = explode('/', $value);
                 $index = count($parts);
-                $range = 0;
-            } else {
+                $range = 0; //#TODO handle ranges
+            } elseif (is_string($key)) {
                 $parts = explode('/', $key);
                 $index = (int) $value;
-                $range = 0;
+                $range = 0; //#TODO handle ranges
+            } else {
+                return null;
             }
             if (!$index) {
                 return null;
             }
-            foreach ($parts as $currentIndex => $part) {
+            foreach (self::padRoute($parts, $index + $range) as $currentIndex => $part) {
                 if ($currentIndex >= $index && $currentIndex <= $index + $range) {
                     if ($currentIndex == count($route) - 1) {
                         $suffix = key_exists($currentIndex, $route) ? $route[$currentIndex] : null;
@@ -159,9 +165,23 @@ class Keys
         return null;
     }
 
-    public static function stackMatch(string $pattern, string $test): bool
+    /**
+     * pads an ordered, INT indexed array with singleton matches
+     */
+    public static function padRoute(array $parts, int $cap): array
     {
-        return $pattern === $test || $pattern == '.' || $pattern == '?';
+        for($i = 0; $i <= $cap; $i++) {
+            key_exists($i, $parts) || $parts[$i] = '.';
+        }
+        return $parts;
+    }
+
+    /**
+     * check the current segment of the route for the speficied pattern
+     */
+    public static function stackMatch(string $pattern, string $current): bool
+    {
+        return $pattern === $current || $pattern == '.' || $pattern == '?';
     }
 
 }

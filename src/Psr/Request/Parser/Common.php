@@ -239,7 +239,8 @@ trait Common
     public static function beheadResource(ServerRequestInterface $request): ServerRequestInterface
     {
         $resourceStack = self::getResourceStack($request);
-        return self::updateRequestStack($request, array_shift($resourceStack));
+        $removed = array_shift($resourceStack);
+        return self::updateRequestStack($request, $resourceStack);
     }
 
     /**
@@ -257,7 +258,8 @@ trait Common
     public static function untailResource(ServerRequestInterface $request): ServerRequestInterface
     {
         $resourceStack = self::getResourceStack($request);
-        return self::updateRequestStack($request, array_pop($resourceStack));
+        $removed = array_pop($resourceStack);
+        return self::updateRequestStack($request, $resourceStack);
     }
 
     /**
